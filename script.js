@@ -1,13 +1,13 @@
 // =====================================================
-// BLACKNET: ZERO DAY — Core Game Engine
-// Phase 3: CSS + Settings Application
+// BLACKNET: ZERO DAY — Финальная версия
+// Полная игра со всеми системами
 // =====================================================
 
 'use strict';
 
-// ==================== CONSTANTS ====================
-const GAME_VERSION = '0.3.0';
-const SAVE_VERSION = 1;
+// ==================== КОНСТАНТЫ ====================
+const GAME_VERSION = '1.0.0';
+const SAVE_VERSION = 2;
 
 const SKILLS = {
     NETWORK: 'NETWORK',
@@ -108,7 +108,7 @@ const RISK_LEVELS = {
     CRITICAL: 'CRITICAL'
 };
 
-// ==================== UTILITIES ====================
+// ==================== УТИЛИТЫ ====================
 function generateId(prefix = 'id') {
     return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
 }
@@ -137,6 +137,16 @@ function getSafe(obj, path, fallback = null) {
 
 function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
+}
+
+function generateFakeHash(input) {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+        const char = input.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0;
+    }
+    return Math.abs(hash).toString(16).padStart(8, '0').repeat(4).slice(0, 64);
 }
 
 // ==================== EVENT BUS ====================
@@ -205,7 +215,6 @@ class GameState {
         this.createdAt = Date.now();
         this.lastSavedAt = null;
         
-        // Player
         this.player = {
             id: generateId('player'),
             name: 'OPERATOR',
@@ -234,56 +243,16 @@ class GameState {
             lastActive: null
         };
         
-        // Hardware
         this.hardware = {
-            cpu: {
-                id: 'cpu_basic',
-                name: 'Basic CPU',
-                level: 1,
-                performance: 10,
-                price: 0
-            },
-            ram: {
-                id: 'ram_basic',
-                name: 'Basic RAM',
-                level: 1,
-                performance: 10,
-                price: 0
-            },
-            ssd: {
-                id: 'ssd_basic',
-                name: 'Basic SSD',
-                level: 1,
-                performance: 10,
-                price: 0
-            },
-            gpu: {
-                id: 'gpu_basic',
-                name: 'Basic GPU',
-                level: 1,
-                performance: 10,
-                price: 0
-            },
-            network: {
-                id: 'net_basic',
-                name: 'Basic Network Card',
-                level: 1,
-                performance: 10,
-                price: 0
-            },
-            security: {
-                id: 'sec_basic',
-                name: 'Basic Security Module',
-                level: 1,
-                performance: 10,
-                price: 0
-            }
+            cpu: { id: 'cpu_basic', name: 'Basic CPU', level: 1, performance: 10, price: 0 },
+            ram: { id: 'ram_basic', name: 'Basic RAM', level: 1, performance: 10, price: 0 },
+            ssd: { id: 'ssd_basic', name: 'Basic SSD', level: 1, performance: 10, price: 0 },
+            gpu: { id: 'gpu_basic', name: 'Basic GPU', level: 1, performance: 10, price: 0 },
+            network: { id: 'net_basic', name: 'Basic Network Card', level: 1, performance: 10, price: 0 },
+            security: { id: 'sec_basic', name: 'Basic Security Module', level: 1, performance: 10, price: 0 }
         };
         
-        // Inventory
         this.inventory = [];
-        
-        // Missions
         this.missions = {
             available: [],
             active: [],
@@ -292,41 +261,27 @@ class GameState {
             dailyContracts: [],
             lastDailyRefresh: null
         };
-        
-        // Network
         this.network = {
             nodes: [],
             connections: [],
             analyzedNodes: [],
             currentNode: null
         };
-        
-        // Forensics
         this.forensics = {
             currentCase: null,
             timeline: [],
             reports: []
         };
-        
-        // Evidence
         this.evidence = [];
         this.intelligenceBoard = [];
-        
-        // Story
         this.story = {
             progress: 0,
             flags: {},
             currentChapter: 0,
             endings: []
         };
-        
-        // Relationships
         this.relationships = {};
-        
-        // Achievements
         this.achievements = {};
-        
-        // Statistics
         this.statistics = {
             totalMissions: 0,
             successfulMissions: 0,
@@ -345,18 +300,10 @@ class GameState {
             terminalCommandsUsed: 0,
             networkNodesAnalyzed: 0
         };
-        
-        // Events
         this.activeEvents = [];
         this.eventHistory = [];
-        
-        // VMs
         this.vms = [];
-        
-        // Activity Log
         this.activityLog = [];
-        
-        // Settings
         this.settings = {
             theme: 'dark',
             sound: true,
@@ -368,14 +315,10 @@ class GameState {
             autosave: true,
             debugMode: false
         };
-        
-        // Market
         this.market = {
             items: [],
             priceHistory: {}
         };
-        
-        // System
         this.system = {
             bootSequenceComplete: false,
             tutorialComplete: false,
@@ -429,15 +372,15 @@ class GameState {
     }
 }
 
-// ==================== MAIN GAME CONTROLLER ====================
+// ==================== ГЛАВНЫЙ КОНТРОЛЛЕР ====================
 class Game {
     constructor() {
         this.state = new GameState();
         this.eventBus = new EventBus();
         this.isRunning = false;
-        this.lastFrameTime = null;
         this.initialized = false;
         this.currentMission = null;
+        this.terminalHistory = [];
     }
     
     init() {
@@ -453,99 +396,203 @@ class Game {
         this.setupEventListeners();
         this.checkSaveAvailability();
         this.registerEventHandlers();
-        this.applySettings(); // Применяем настройки при старте
+        this.applySettings();
+        
+        // Создаём начальный мир
+        this.initializeWorld();
         
         this.eventBus.emit('GAME_INITIALIZED', { game: this });
         console.log('BLACKNET: ZERO DAY — Initialization complete.');
     }
     
+    initializeWorld() {
+        // Заполняем сеть стартовыми узлами
+        this.state.network.nodes = [
+            { id: 'node_1', name: 'NODE-01', type: NODE_TYPES.SERVER, risk: 'LOW', status: 'active', security: 10, x: 30, y: 30 },
+            { id: 'node_2', name: 'NODE-02', type: NODE_TYPES.ROUTER, risk: 'MEDIUM', status: 'active', security: 20, x: 60, y: 40 },
+            { id: 'node_3', name: 'NODE-03', type: NODE_TYPES.DATABASE, risk: 'HIGH', status: 'active', security: 30, x: 50, y: 70 },
+            { id: 'node_4', name: 'NODE-04', type: NODE_TYPES.WORKSTATION, risk: 'LOW', status: 'active', security: 15, x: 80, y: 20 },
+            { id: 'node_5', name: 'NODE-05', type: NODE_TYPES.CLOUD, risk: 'CRITICAL', status: 'active', security: 40, x: 40, y: 90 }
+        ];
+        
+        this.state.network.connections = [
+            { from: 'node_1', to: 'node_2' },
+            { from: 'node_2', to: 'node_3' },
+            { from: 'node_1', to: 'node_4' },
+            { from: 'node_3', to: 'node_5' }
+        ];
+        
+        // Добавляем первую миссию
+        this.createStoryMissions();
+        
+        // Заполняем рынок предметами
+        this.initializeMarket();
+        
+        // Добавляем NPC
+        this.initializeNPCs();
+        
+        // Добавляем достижения
+        this.initializeAchievements();
+    }
+    
+    createStoryMissions() {
+        const missions = [
+            {
+                id: 'mission_1',
+                title: 'THE FIRST TRACE',
+                description: 'A simple log analysis on NODE-01. Something unusual in the access logs.',
+                difficulty: MISSION_DIFFICULTIES.EASY,
+                reward: 150,
+                xp: 50,
+                risk: RISK_LEVELS.LOW,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Scan network', type: 'scan_network', completed: false },
+                    { id: 'obj_2', description: 'Inspect NODE-01', type: 'inspect_node', target: 'node_1', completed: false },
+                    { id: 'obj_3', description: 'Analyze logs', type: 'analyze_log', target: 'node_1', completed: false },
+                    { id: 'obj_4', description: 'Report findings', type: 'complete_report', completed: false }
+                ],
+                storyFlag: 'intro_complete'
+            },
+            {
+                id: 'mission_2',
+                title: 'GHOST IN THE NETWORK',
+                description: 'There is a ghost process running on NODE-02. Find it and trace its origin.',
+                difficulty: MISSION_DIFFICULTIES.EASY,
+                reward: 200,
+                xp: 70,
+                risk: RISK_LEVELS.MEDIUM,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Connect to NODE-02', type: 'connect_node', target: 'node_2', completed: false },
+                    { id: 'obj_2', description: 'Find ghost process', type: 'solve_puzzle', puzzle: 'log_analysis', completed: false },
+                    { id: 'obj_3', description: 'Trace origin', type: 'trace_origin', completed: false }
+                ]
+            },
+            {
+                id: 'mission_3',
+                title: 'DEAD DROP',
+                description: 'A dead drop has been discovered. Find the hidden data.',
+                difficulty: MISSION_DIFFICULTIES.MEDIUM,
+                reward: 300,
+                xp: 100,
+                risk: RISK_LEVELS.MEDIUM,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Decrypt message', type: 'solve_puzzle', puzzle: 'crypto', completed: false },
+                    { id: 'obj_2', description: 'Find evidence', type: 'find_evidence', completed: false }
+                ]
+            }
+        ];
+        
+        this.state.missions.available.push(...missions);
+    }
+    
+    initializeMarket() {
+        const items = [
+            { id: 'cpu_mid', name: 'Mid CPU', category: 'hardware', price: 300, description: 'Mid-range CPU for better analysis', effect: { type: 'cpu', performance: 20 }, rarity: RARITIES.COMMON },
+            { id: 'ram_mid', name: 'Mid RAM', category: 'hardware', price: 200, description: 'More memory for parallel tasks', effect: { type: 'ram', performance: 20 }, rarity: RARITIES.COMMON },
+            { id: 'ssd_mid', name: 'Mid SSD', category: 'hardware', price: 250, description: 'Faster storage', effect: { type: 'ssd', performance: 20 }, rarity: RARITIES.COMMON },
+            { id: 'tool_scanner', name: 'Advanced Scanner', category: 'tools', price: 400, description: 'Better network scanning', effect: { type: 'tool' }, rarity: RARITIES.UNCOMMON },
+            { id: 'software_firewall', name: 'Firewall Bypass', category: 'software', price: 500, description: 'Helps bypass firewalls', effect: { type: 'software' }, rarity: RARITIES.UNCOMMON },
+            { id: 'intel_report', name: 'Intel Report', category: 'intel', price: 150, description: 'Contains useful information', effect: { type: 'intel' }, rarity: RARITIES.COMMON }
+        ];
+        this.state.market.items = items;
+        items.forEach(item => {
+            this.state.market.priceHistory[item.id] = [item.price];
+        });
+    }
+    
+    initializeNPCs() {
+        this.state.relationships = {
+            MAYA: { name: 'MAYA', role: 'Fixer', trust: 20, dialogues: [], flags: {} },
+            RAVEN: { name: 'RAVEN', role: 'Hacker', trust: 10, dialogues: [], flags: {} },
+            NEX: { name: 'NEX', role: 'Broker', trust: 15, dialogues: [], flags: {} },
+            WARDEN: { name: 'WARDEN', role: 'Security', trust: 5, dialogues: [], flags: {} },
+            GHOST: { name: 'GHOST', role: 'Mysterious', trust: 0, dialogues: [], flags: {} }
+        };
+    }
+    
+    initializeAchievements() {
+        const achievements = [
+            { id: 'ach_first_login', name: 'FIRST LOGIN', description: 'Start the game', condition: () => true, unlocked: false },
+            { id: 'ach_first_contract', name: 'FIRST CONTRACT', description: 'Complete first mission', condition: () => this.state.statistics.successfulMissions >= 1, unlocked: false },
+            { id: 'ach_network_architect', name: 'NETWORK ARCHITECT', description: 'Analyze 10 nodes', condition: () => this.state.statistics.networkNodesAnalyzed >= 10, unlocked: false },
+            { id: 'ach_digital_detective', name: 'DIGITAL DETECTIVE', description: 'Find 20 evidence', condition: () => this.state.statistics.evidenceFound >= 20, unlocked: false },
+            { id: 'ach_master_analyst', name: 'MASTER ANALYST', description: 'Complete 5 reports', condition: () => this.state.statistics.reportsCompleted >= 5, unlocked: false },
+            { id: 'ach_ghost_protocol', name: 'GHOST PROTOCOL', description: 'Reach trust 50 with GHOST', condition: () => this.state.relationships.GHOST && this.state.relationships.GHOST.trust >= 50, unlocked: false },
+            { id: 'ach_no_trace', name: 'NO TRACE', description: 'Complete a mission with low heat', condition: () => this.state.player.heat < 20 && this.state.statistics.successfulMissions >= 1, unlocked: false },
+            { id: 'ach_zero_day', name: 'ZERO DAY', description: 'Reach story flag zero_day', condition: () => this.state.story.flags.zero_day, unlocked: false },
+            { id: 'ach_perfect_report', name: 'PERFECT REPORT', description: 'Get grade S in a report', condition: () => this.state.forensics.reports.some(r => r.grade === 'S'), unlocked: false },
+            { id: 'ach_night_owl', name: 'NIGHT OWL', description: 'Play for 1 hour', condition: () => this.state.statistics.playTime >= 3600, unlocked: false }
+        ];
+        
+        achievements.forEach(ach => {
+            this.state.achievements[ach.id] = ach;
+        });
+    }
+    
     setupEventListeners() {
-        const btnNewGame = document.getElementById('btn-new-game');
-        const btnContinue = document.getElementById('btn-continue');
-        const btnSettings = document.getElementById('btn-settings');
-        
-        if (btnNewGame) {
-            btnNewGame.addEventListener('click', () => {
-                this.startNewGame();
-            });
-        }
-        
-        if (btnContinue) {
-            btnContinue.addEventListener('click', () => {
-                this.continueGame();
-            });
-        }
-        
-        if (btnSettings) {
-            btnSettings.addEventListener('click', () => {
-                this.showSettingsModal();
-            });
-        }
+        document.getElementById('btn-new-game')?.addEventListener('click', () => this.startNewGame());
+        document.getElementById('btn-continue')?.addEventListener('click', () => this.continueGame());
+        document.getElementById('btn-settings')?.addEventListener('click', () => this.showSettingsModal());
         
         document.querySelectorAll('[data-screen]').forEach(element => {
             element.addEventListener('click', (e) => {
                 e.preventDefault();
                 const screen = element.getAttribute('data-screen');
-                if (screen && screen !== 'menu') {
-                    this.navigateToScreen(screen);
-                }
+                if (screen && screen !== 'menu') this.navigateToScreen(screen);
             });
         });
         
-        const mobileMore = document.getElementById('mobile-more');
-        if (mobileMore) {
-            mobileMore.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showMobileMenu();
-            });
-        }
-        
-        const terminalInput = document.getElementById('terminal-input');
-        if (terminalInput) {
-            terminalInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    const command = terminalInput.value.trim();
-                    if (command) {
-                        this.executeTerminalCommand(command);
-                        terminalInput.value = '';
-                    }
-                }
-            });
-        }
-    }
-    
-    registerEventHandlers() {
-        this.eventBus.on('SCREEN_CHANGED', (payload) => {
-            const screen = payload.screen;
-            this.renderScreen(screen);
+        document.getElementById('mobile-more')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.showMobileMenu();
         });
         
-        this.eventBus.on('ACTIVITY_LOG_UPDATED', () => {
-            if (this.state.system.currentScreen === 'dashboard') {
-                this.renderDashboard();
+        document.getElementById('terminal-input')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = e.target.value.trim();
+                if (command) {
+                    this.executeTerminalCommand(command);
+                    e.target.value = '';
+                }
             }
         });
     }
     
+    registerEventHandlers() {
+        this.eventBus.on('SCREEN_CHANGED', (payload) => this.renderScreen(payload.screen));
+        this.eventBus.on('ACTIVITY_LOG_UPDATED', () => {
+            if (this.state.system.currentScreen === 'dashboard') this.renderDashboard();
+        });
+        this.eventBus.on('EVENT_MISSION_COMPLETE', (payload) => {
+            this.addNotification(`MISSION COMPLETE: ${payload.mission.title}\n+${payload.mission.reward} Credits, +${payload.mission.xp} XP`, 'mission');
+        });
+        this.eventBus.on('EVENT_LEVEL_UP', (payload) => {
+            this.addNotification(`LEVEL UP! You are now level ${payload.level}`, 'success');
+        });
+        this.eventBus.on('EVENT_ITEM_PURCHASE', (payload) => {
+            this.addNotification(`Purchased: ${payload.item.name}`, 'success');
+        });
+        this.eventBus.on('EVENT_ITEM_SOLD', (payload) => {
+            this.addNotification(`Sold: ${payload.item.name}`, 'info');
+        });
+    }
+    
     checkSaveAvailability() {
-        const btnContinue = document.getElementById('btn-continue');
-        if (btnContinue) {
-            const hasSave = this.hasSaveData();
-            btnContinue.disabled = !hasSave;
-        }
+        const btn = document.getElementById('btn-continue');
+        if (btn) btn.disabled = !this.hasSaveData();
     }
     
     hasSaveData() {
-        try {
-            return localStorage.getItem('blacknet_save') !== null;
-        } catch (e) {
-            return false;
-        }
+        try { return localStorage.getItem('blacknet_save') !== null; } catch (e) { return false; }
     }
     
     startNewGame() {
         console.log('Starting new game...');
         this.state.reset();
+        this.initializeWorld();
         this.applySettings();
         this.showBootSequence();
     }
@@ -584,7 +631,6 @@ class Game {
         ];
         
         let lineIndex = 0;
-        
         const showNextLine = () => {
             if (lineIndex < bootLines.length) {
                 const line = document.createElement('div');
@@ -596,9 +642,7 @@ class Game {
             } else {
                 if (btnEnter) {
                     btnEnter.classList.remove('hidden');
-                    btnEnter.addEventListener('click', () => {
-                        this.enterDashboard();
-                    }, { once: true });
+                    btnEnter.addEventListener('click', () => this.enterDashboard(), { once: true });
                 }
             }
         };
@@ -609,50 +653,29 @@ class Game {
     }
     
     enterDashboard() {
-        const bootScreen = document.getElementById('boot-screen');
-        const gameScreen = document.getElementById('game-screen');
-        
-        if (bootScreen) bootScreen.classList.remove('active');
-        if (gameScreen) gameScreen.classList.add('active');
-        
+        document.getElementById('boot-screen')?.classList.remove('active');
+        document.getElementById('game-screen')?.classList.add('active');
         this.navigateToScreen('dashboard');
         this.eventBus.emit('GAME_STARTED', { game: this });
-        
-        this.applySettings(); // Применяем настройки после входа
+        this.applySettings();
         this.saveGame(true);
     }
     
     navigateToScreen(screenName) {
-        const validScreens = [
-            'dashboard', 'terminal', 'missions', 'network', 'forensics',
-            'intelligence', 'market', 'inventory', 'skills', 'statistics', 'settings'
-        ];
-        
-        if (!validScreens.includes(screenName)) return;
+        const valid = ['dashboard', 'terminal', 'missions', 'network', 'forensics', 'intelligence', 'market', 'inventory', 'skills', 'statistics', 'settings'];
+        if (!valid.includes(screenName)) return;
         
         this.state.system.currentScreen = screenName;
-        
-        document.querySelectorAll('.game-screen-content').forEach(el => {
-            el.classList.remove('active');
-        });
-        
-        const target = document.getElementById(`screen-${screenName}`);
-        if (target) {
-            target.classList.add('active');
-        }
+        document.querySelectorAll('.game-screen-content').forEach(el => el.classList.remove('active'));
+        document.getElementById(`screen-${screenName}`)?.classList.add('active');
         
         document.querySelectorAll('#main-nav a, #mobile-nav a').forEach(el => {
             el.classList.remove('active');
-            if (el.getAttribute('data-screen') === screenName) {
-                el.classList.add('active');
-            }
+            if (el.getAttribute('data-screen') === screenName) el.classList.add('active');
         });
         
         if (screenName === 'terminal') {
-            setTimeout(() => {
-                const input = document.getElementById('terminal-input');
-                if (input) input.focus();
-            }, 100);
+            setTimeout(() => document.getElementById('terminal-input')?.focus(), 100);
         }
         
         this.eventBus.emit('SCREEN_CHANGED', { screen: screenName });
@@ -661,13 +684,8 @@ class Game {
     saveGame(showNotification = false) {
         try {
             this.state.lastSavedAt = Date.now();
-            const saveData = JSON.stringify(this.state.toJSON());
-            localStorage.setItem('blacknet_save', saveData);
-            
-            if (showNotification) {
-                this.addNotification('SAVE COMPLETE', 'success');
-            }
-            
+            localStorage.setItem('blacknet_save', JSON.stringify(this.state.toJSON()));
+            if (showNotification) this.addNotification('SAVE COMPLETE', 'success');
             this.eventBus.emit('GAME_SAVED', { timestamp: this.state.lastSavedAt });
             return true;
         } catch (e) {
@@ -679,189 +697,112 @@ class Game {
     
     loadGame() {
         try {
-            const saveData = localStorage.getItem('blacknet_save');
-            if (saveData) {
-                return JSON.parse(saveData);
-            }
+            const data = localStorage.getItem('blacknet_save');
+            return data ? JSON.parse(data) : null;
         } catch (e) {
             console.error('Load failed:', e);
+            return null;
         }
-        return null;
     }
     
     addNotification(message, type = 'info', duration = 4000) {
         const container = document.getElementById('notification-container');
-        if (!container) return;
+        if (!container || !this.state.settings.notifications) return;
         
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-        
-        container.appendChild(notification);
-        
+        const el = document.createElement('div');
+        el.className = `notification ${type}`;
+        el.textContent = message;
+        container.appendChild(el);
         setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transition = 'opacity 0.3s';
-            setTimeout(() => notification.remove(), 300);
+            el.style.opacity = '0';
+            el.style.transition = 'opacity 0.3s';
+            setTimeout(() => el.remove(), 300);
         }, duration);
     }
     
     addActivityLog(type, message) {
-        this.state.activityLog.push({
-            timestamp: Date.now(),
-            type: type,
-            message: message
-        });
-        
-        if (this.state.activityLog.length > 500) {
-            this.state.activityLog.shift();
-        }
-        
+        this.state.activityLog.push({ timestamp: Date.now(), type, message });
+        if (this.state.activityLog.length > 500) this.state.activityLog.shift();
         this.eventBus.emit('ACTIVITY_LOG_UPDATED', { log: this.state.activityLog });
     }
     
-    // ==================== НАСТРОЙКИ ====================
     applySettings() {
-        // Применяем scanlines
-        if (!this.state.settings.scanlines) {
-            document.body.classList.add('no-scanlines');
-        } else {
-            document.body.classList.remove('no-scanlines');
-        }
-        
-        // Применяем размер шрифта терминала
+        document.body.classList.toggle('no-scanlines', !this.state.settings.scanlines);
         const terminalWindow = document.querySelector('.terminal-window');
-        const terminalInput = document.getElementById('terminal-input');
-        if (terminalWindow) {
-            terminalWindow.style.fontSize = this.state.settings.terminalFontSize + 'px';
-        }
-        if (terminalInput) {
-            terminalInput.style.fontSize = this.state.settings.terminalFontSize + 'px';
-        }
-        
-        // Другие настройки можно добавить позже
+        if (terminalWindow) terminalWindow.style.fontSize = this.state.settings.terminalFontSize + 'px';
+        const input = document.getElementById('terminal-input');
+        if (input) input.style.fontSize = this.state.settings.terminalFontSize + 'px';
     }
     
     // ==================== РЕНДЕРИНГ ====================
-    renderScreen(screenName) {
-        switch (screenName) {
-            case 'dashboard':
-                this.renderDashboard();
-                break;
-            case 'terminal':
-                this.renderTerminal();
-                break;
-            case 'missions':
-                this.renderMissions('available');
-                break;
-            case 'network':
-                this.renderNetwork();
-                break;
-            case 'forensics':
-                this.renderForensics();
-                break;
-            case 'intelligence':
-                this.renderIntelligence();
-                break;
-            case 'market':
-                this.renderMarket('hardware');
-                break;
-            case 'inventory':
-                this.renderInventory();
-                break;
-            case 'skills':
-                this.renderSkills();
-                break;
-            case 'statistics':
-                this.renderStatistics();
-                break;
-            case 'settings':
-                this.renderSettings();
-                break;
+    renderScreen(screen) {
+        switch (screen) {
+            case 'dashboard': this.renderDashboard(); break;
+            case 'terminal': this.renderTerminal(); break;
+            case 'missions': this.renderMissions('available'); break;
+            case 'network': this.renderNetwork(); break;
+            case 'forensics': this.renderForensics(); break;
+            case 'intelligence': this.renderIntelligence(); break;
+            case 'market': this.renderMarket('hardware'); break;
+            case 'inventory': this.renderInventory(); break;
+            case 'skills': this.renderSkills(); break;
+            case 'statistics': this.renderStatistics(); break;
+            case 'settings': this.renderSettings(); break;
         }
     }
     
     renderDashboard() {
-        const playerInfo = document.getElementById('player-info');
-        if (playerInfo) {
-            const p = this.state.player;
-            playerInfo.innerHTML = `
-                <div class="stat-row"><span class="stat-label">Name</span><span class="stat-value">${p.name}</span></div>
-                <div class="stat-row"><span class="stat-label">Level</span><span class="stat-value">${p.level}</span></div>
-                <div class="stat-row"><span class="stat-label">XP</span><span class="stat-value">${p.xp} / ${p.xpToNext}</span></div>
-                <div class="stat-row"><span class="stat-label">Credits</span><span class="stat-value">${formatNumber(p.credits)}</span></div>
-                <div class="stat-row"><span class="stat-label">Heat</span><span class="stat-value">${p.heat}</span></div>
-                <div class="stat-row"><span class="stat-label">Suspicion</span><span class="stat-value">${p.suspicion}</span></div>
-            `;
-        }
+        const p = this.state.player;
+        document.getElementById('player-info').innerHTML = `
+            <div class="stat-row"><span class="stat-label">Name</span><span class="stat-value">${p.name}</span></div>
+            <div class="stat-row"><span class="stat-label">Level</span><span class="stat-value">${p.level}</span></div>
+            <div class="stat-row"><span class="stat-label">XP</span><span class="stat-value">${p.xp} / ${p.xpToNext}</span></div>
+            <div class="stat-row"><span class="stat-label">Credits</span><span class="stat-value">${formatNumber(p.credits)}</span></div>
+            <div class="stat-row"><span class="stat-label">Heat</span><span class="stat-value">${p.heat}</span></div>
+            <div class="stat-row"><span class="stat-label">Suspicion</span><span class="stat-value">${p.suspicion}</span></div>
+        `;
         
-        const systemInfo = document.getElementById('system-info');
-        if (systemInfo) {
-            const hw = this.state.hardware;
-            const cpuLoad = Math.floor(Math.random() * 30) + 20;
-            systemInfo.innerHTML = `
-                <div class="stat-row"><span class="stat-label">CPU</span><span class="stat-value">${cpuLoad}% (${hw.cpu.name})</span></div>
-                <div class="stat-row"><span class="stat-label">RAM</span><span class="stat-value">${hw.ram.performance * 4} MB</span></div>
-                <div class="stat-row"><span class="stat-label">Storage</span><span class="stat-value">${hw.ssd.performance} GB</span></div>
-                <div class="stat-row"><span class="stat-label">Network</span><span class="stat-value">${hw.network.name}</span></div>
-                <div class="stat-row"><span class="stat-label">Security</span><span class="stat-value">${hw.security.name}</span></div>
-            `;
-        }
+        const hw = this.state.hardware;
+        const cpuLoad = Math.floor(Math.random() * 30) + 20;
+        document.getElementById('system-info').innerHTML = `
+            <div class="stat-row"><span class="stat-label">CPU</span><span class="stat-value">${cpuLoad}% (${hw.cpu.name})</span></div>
+            <div class="stat-row"><span class="stat-label">RAM</span><span class="stat-value">${hw.ram.performance * 4} MB</span></div>
+            <div class="stat-row"><span class="stat-label">Storage</span><span class="stat-value">${hw.ssd.performance} GB</span></div>
+            <div class="stat-row"><span class="stat-label">Network</span><span class="stat-value">${hw.network.name}</span></div>
+            <div class="stat-row"><span class="stat-label">Security</span><span class="stat-value">${hw.security.name}</span></div>
+        `;
         
-        const currentContract = document.getElementById('current-contract');
-        if (currentContract) {
-            const activeMission = this.state.missions.active[0];
-            if (activeMission) {
-                currentContract.innerHTML = `
-                    <div class="stat-row"><span class="stat-label">Title</span><span class="stat-value">${activeMission.title}</span></div>
-                    <div class="stat-row"><span class="stat-label">Difficulty</span><span class="stat-value">${activeMission.difficulty}</span></div>
-                    <div class="stat-row"><span class="stat-label">Reward</span><span class="stat-value">${activeMission.reward} Cr</span></div>
-                    <div class="stat-row"><span class="stat-label">Risk</span><span class="stat-value">${activeMission.risk}</span></div>
-                `;
-            } else {
-                currentContract.innerHTML = '<p>No active mission</p>';
-            }
-        }
+        const active = this.state.missions.active[0];
+        document.getElementById('current-contract').innerHTML = active ? `
+            <div class="stat-row"><span class="stat-label">Title</span><span class="stat-value">${active.title}</span></div>
+            <div class="stat-row"><span class="stat-label">Difficulty</span><span class="stat-value">${active.difficulty}</span></div>
+            <div class="stat-row"><span class="stat-label">Reward</span><span class="stat-value">${active.reward} Cr</span></div>
+            <div class="stat-row"><span class="stat-label">Risk</span><span class="stat-value">${active.risk}</span></div>
+        ` : '<p>No active mission</p>';
         
-        const networkStats = document.getElementById('network-stats');
-        if (networkStats) {
-            const net = this.state.network;
-            networkStats.innerHTML = `
-                <div class="stat-row"><span class="stat-label">Nodes</span><span class="stat-value">${net.nodes.length}</span></div>
-                <div class="stat-row"><span class="stat-label">Connections</span><span class="stat-value">${net.connections.length}</span></div>
-                <div class="stat-row"><span class="stat-label">Analyzed</span><span class="stat-value">${net.analyzedNodes.length}</span></div>
-                <div class="stat-row"><span class="stat-label">Threats</span><span class="stat-value">0</span></div>
-            `;
-        }
+        const net = this.state.network;
+        document.getElementById('network-stats').innerHTML = `
+            <div class="stat-row"><span class="stat-label">Nodes</span><span class="stat-value">${net.nodes.length}</span></div>
+            <div class="stat-row"><span class="stat-label">Connections</span><span class="stat-value">${net.connections.length}</span></div>
+            <div class="stat-row"><span class="stat-label">Analyzed</span><span class="stat-value">${net.analyzedNodes.length}</span></div>
+        `;
         
-        const intelligenceStats = document.getElementById('intelligence-stats');
-        if (intelligenceStats) {
-            intelligenceStats.innerHTML = `
-                <div class="stat-row"><span class="stat-label">Evidence</span><span class="stat-value">${this.state.evidence.length}</span></div>
-                <div class="stat-row"><span class="stat-label">Board Items</span><span class="stat-value">${this.state.intelligenceBoard.length}</span></div>
-            `;
-        }
+        document.getElementById('intelligence-stats').innerHTML = `
+            <div class="stat-row"><span class="stat-label">Evidence</span><span class="stat-value">${this.state.evidence.length}</span></div>
+            <div class="stat-row"><span class="stat-label">Board Items</span><span class="stat-value">${this.state.intelligenceBoard.length}</span></div>
+        `;
         
-        const activityLog = document.getElementById('activity-log');
-        if (activityLog) {
-            const logs = this.state.activityLog.slice(-10).reverse();
-            if (logs.length > 0) {
-                activityLog.innerHTML = logs.map(log => 
-                    `<div>[${formatTime(log.timestamp)}] ${log.message}</div>`
-                ).join('');
-            } else {
-                activityLog.innerHTML = '<div>No activity yet</div>';
-            }
-        }
+        const logs = this.state.activityLog.slice(-10).reverse();
+        document.getElementById('activity-log').innerHTML = logs.length > 0 ? 
+            logs.map(log => `<div>[${formatTime(log.timestamp)}] ${log.message}</div>`).join('') : 
+            '<div>No activity yet</div>';
     }
     
     renderTerminal() {
         const output = document.getElementById('terminal-output');
-        if (output) {
-            if (!output.dataset.initialized) {
-                output.innerHTML = 'Type "help" to see available commands.\n';
-                output.dataset.initialized = 'true';
-            }
+        if (output && !output.dataset.initialized) {
+            output.innerHTML = 'Type "help" to see available commands.\n';
+            output.dataset.initialized = 'true';
         }
     }
     
@@ -869,13 +810,13 @@ class Game {
         const container = document.getElementById('missions-container');
         if (!container) return;
         
-        const missionList = this.state.missions[tab] || [];
-        if (missionList.length === 0) {
+        const list = this.state.missions[tab] || [];
+        if (list.length === 0) {
             container.innerHTML = '<p>No missions in this category.</p>';
             return;
         }
         
-        container.innerHTML = missionList.map(mission => `
+        container.innerHTML = list.map(mission => `
             <div class="mission-card" data-id="${mission.id}">
                 <h4>${mission.title}</h4>
                 <div class="mission-desc">${mission.description}</div>
@@ -883,31 +824,87 @@ class Game {
                     <span>Difficulty: ${mission.difficulty}</span>
                     <span>Reward: ${mission.reward} Cr</span>
                     <span>Risk: ${mission.risk}</span>
-                    <span>Status: ${mission.status || 'Unknown'}</span>
                 </div>
             </div>
         `).join('');
         
         container.querySelectorAll('.mission-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const missionId = card.getAttribute('data-id');
-                this.showMissionDetails(missionId);
+            card.addEventListener('click', () => this.showMissionDetails(card.getAttribute('data-id')));
+        });
+        
+        // Обработчики вкладок
+        document.querySelectorAll('.missions-tabs .tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.missions-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.renderMissions(btn.getAttribute('data-tab'));
             });
         });
     }
     
     renderNetwork() {
         const map = document.getElementById('network-map');
-        if (map) {
-            if (this.state.network.nodes.length === 0) {
-                map.innerHTML = '<div style="padding:20px; text-align:center;">No network data. Use terminal to scan.</div>';
-            } else {
-                map.innerHTML = this.state.network.nodes.map(node => 
-                    `<div style="position:absolute; left:${node.x || 50}%; top:${node.y || 50}%; 
-                          width:10px; height:10px; background:var(--cyan); border-radius:50%; 
-                          cursor:pointer;" title="${node.name}"></div>`
-                ).join('');
+        if (!map) return;
+        
+        if (this.state.network.nodes.length === 0) {
+            map.innerHTML = '<div style="padding:20px;text-align:center;">No network data. Use terminal to scan.</div>';
+            return;
+        }
+        
+        // Рисуем соединения и узлы
+        let html = '';
+        this.state.network.connections.forEach(conn => {
+            const from = this.state.network.nodes.find(n => n.id === conn.from);
+            const to = this.state.network.nodes.find(n => n.id === conn.to);
+            if (from && to) {
+                html += `<div style="position:absolute; left:${from.x}%; top:${from.y}%; width:${Math.abs(to.x - from.x)}%; height:1px; background:var(--border); transform-origin: left center; transform: rotate(${Math.atan2(to.y - from.y, to.x - from.x)}rad);"></div>`;
             }
+        });
+        
+        this.state.network.nodes.forEach(node => {
+            html += `<div style="position:absolute; left:${node.x}%; top:${node.y}%; width:12px; height:12px; background:var(--cyan); border-radius:50%; cursor:pointer; transform: translate(-50%, -50%);" title="${node.name} (${node.type})" data-node-id="${node.id}"></div>`;
+        });
+        
+        map.innerHTML = html;
+        
+        map.querySelectorAll('[data-node-id]').forEach(el => {
+            el.addEventListener('click', () => {
+                const node = this.state.network.nodes.find(n => n.id === el.getAttribute('data-node-id'));
+                if (node) this.showNodeInfo(node);
+            });
+        });
+    }
+    
+    showNodeInfo(node) {
+        const info = document.getElementById('network-info');
+        if (info) {
+            info.innerHTML = `
+                <h3>${node.name}</h3>
+                <p>Type: ${node.type}</p>
+                <p>Security: ${node.security}</p>
+                <p>Risk: ${node.risk}</p>
+                <p>Status: ${node.status}</p>
+                <button id="btn-inspect-node" class="btn-primary">INSPECT</button>
+            `;
+            document.getElementById('btn-inspect-node').addEventListener('click', () => {
+                this.inspectNode(node.id);
+            });
+        }
+    }
+    
+    inspectNode(nodeId) {
+        const node = this.state.network.nodes.find(n => n.id === nodeId);
+        if (!node) return;
+        
+        // Отмечаем узел как проанализированный
+        if (!this.state.network.analyzedNodes.includes(nodeId)) {
+            this.state.network.analyzedNodes.push(nodeId);
+            this.state.statistics.networkNodesAnalyzed++;
+            this.addActivityLog('NETWORK', `Inspected ${node.name}`);
+            this.addNotification(`Node ${node.name} analyzed`, 'success');
+            
+            // Проверяем цели миссий
+            this.checkMissionObjective('inspect_node', nodeId);
         }
     }
     
@@ -917,8 +914,28 @@ class Game {
             if (!this.state.forensics.currentCase) {
                 caseContainer.innerHTML = '<p>No active case. Accept a mission first.</p>';
             } else {
-                caseContainer.innerHTML = `<h3>${this.state.forensics.currentCase.title}</h3>
-                    <p>${this.state.forensics.currentCase.description}</p>`;
+                caseContainer.innerHTML = `<h3>${this.state.forensics.currentCase.title}</h3><p>${this.state.forensics.currentCase.description}</p>`;
+            }
+        }
+        
+        const timelineContainer = document.getElementById('forensics-timeline');
+        if (timelineContainer) {
+            if (this.state.forensics.timeline.length === 0) {
+                timelineContainer.innerHTML = '<p>Timeline is empty.</p>';
+            } else {
+                timelineContainer.innerHTML = this.state.forensics.timeline.map(event => 
+                    `<div>[${formatTime(event.timestamp)}] ${event.description}</div>`
+                ).join('');
+            }
+        }
+        
+        const reportContainer = document.getElementById('forensics-report');
+        if (reportContainer) {
+            if (this.state.forensics.reports.length === 0) {
+                reportContainer.innerHTML = '<p>No reports yet.</p>';
+            } else {
+                const lastReport = this.state.forensics.reports[this.state.forensics.reports.length - 1];
+                reportContainer.innerHTML = `<h3>Last Report: ${lastReport.title}</h3><p>Grade: ${lastReport.grade}</p>`;
             }
         }
     }
@@ -944,7 +961,71 @@ class Game {
         const container = document.getElementById('market-items');
         if (!container) return;
         
-        container.innerHTML = '<p>Market is empty. Check back later.</p>';
+        const items = this.state.market.items.filter(item => item.category === category);
+        if (items.length === 0) {
+            container.innerHTML = '<p>No items in this category.</p>';
+            return;
+        }
+        
+        container.innerHTML = items.map(item => `
+            <div class="item-card" data-item-id="${item.id}">
+                <div class="item-name">${item.name}</div>
+                <div class="item-desc">${item.description}</div>
+                <div class="item-price">${formatNumber(item.price)} Cr</div>
+                <div class="item-meta">Rarity: ${item.rarity}</div>
+                <button class="btn-buy-item" data-item-id="${item.id}">BUY</button>
+            </div>
+        `).join('');
+        
+        container.querySelectorAll('.btn-buy-item').forEach(btn => {
+            btn.addEventListener('click', () => this.buyItem(btn.getAttribute('data-item-id')));
+        });
+        
+        document.querySelectorAll('.market-tabs .tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.market-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.renderMarket(btn.getAttribute('data-category'));
+            });
+        });
+    }
+    
+    buyItem(itemId) {
+        const item = this.state.market.items.find(i => i.id === itemId);
+        if (!item) return;
+        
+        if (this.state.player.credits < item.price) {
+            this.addNotification('Not enough credits', 'error');
+            return;
+        }
+        
+        this.state.player.credits -= item.price;
+        this.state.statistics.moneySpent += item.price;
+        
+        // Применяем эффект предмета, если это оборудование
+        if (item.effect && item.effect.type && this.state.hardware[item.effect.type]) {
+            this.state.hardware[item.effect.type] = {
+                id: item.id,
+                name: item.name,
+                level: this.state.hardware[item.effect.type].level + 1,
+                performance: item.effect.performance,
+                price: item.price
+            };
+        } else {
+            // Добавляем в инвентарь
+            const existing = this.state.inventory.find(i => i.id === item.id);
+            if (existing) {
+                existing.quantity++;
+            } else {
+                this.state.inventory.push({ ...item, quantity: 1 });
+            }
+        }
+        
+        this.eventBus.emit('EVENT_ITEM_PURCHASE', { item });
+        this.addActivityLog('MARKET', `Purchased ${item.name} for ${item.price} Cr`);
+        this.saveGame();
+        this.renderMarket(this.state.system.currentCategory || 'hardware');
+        this.renderDashboard();
     }
     
     renderInventory() {
@@ -953,15 +1034,39 @@ class Game {
             if (this.state.inventory.length === 0) {
                 container.innerHTML = '<p>Your inventory is empty.</p>';
             } else {
-                container.innerHTML = this.state.inventory.map(item => 
-                    `<div class="item-card">
+                container.innerHTML = this.state.inventory.map(item => `
+                    <div class="item-card" data-item-id="${item.id}">
                         <div class="item-name">${item.name}</div>
                         <div class="item-desc">${item.description}</div>
                         <div class="item-meta">Qty: ${item.quantity} | Rarity: ${item.rarity}</div>
-                    </div>`
-                ).join('');
+                        <button class="btn-sell-item" data-item-id="${item.id}">SELL</button>
+                    </div>
+                `).join('');
+                
+                container.querySelectorAll('.btn-sell-item').forEach(btn => {
+                    btn.addEventListener('click', () => this.sellItem(btn.getAttribute('data-item-id')));
+                });
             }
         }
+    }
+    
+    sellItem(itemId) {
+        const item = this.state.inventory.find(i => i.id === itemId);
+        if (!item) return;
+        
+        const sellPrice = Math.floor(item.price * 0.6);
+        this.state.player.credits += sellPrice;
+        this.state.statistics.moneyEarned += sellPrice;
+        item.quantity--;
+        if (item.quantity <= 0) {
+            this.state.inventory = this.state.inventory.filter(i => i.id !== itemId);
+        }
+        
+        this.eventBus.emit('EVENT_ITEM_SOLD', { item });
+        this.addActivityLog('MARKET', `Sold ${item.name} for ${sellPrice} Cr`);
+        this.saveGame();
+        this.renderInventory();
+        this.renderDashboard();
     }
     
     renderSkills() {
@@ -974,43 +1079,45 @@ class Game {
                     <div class="skill-card">
                         <h3>${SKILL_NAMES[key]} <span style="float:right;">${value}/100</span></h3>
                         <div class="skill-desc">${SKILL_DESCRIPTIONS[key]}</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width:${value}%"></div>
-                        </div>
-                        ${this.state.player.skillPoints > 0 ? '<button class="btn-upgrade-skill" data-skill="'+key+'">Upgrade</button>' : ''}
+                        <div class="progress-bar"><div class="progress-fill" style="width:${value}%"></div></div>
+                        ${this.state.player.skillPoints > 0 ? `<button class="btn-upgrade-skill" data-skill="${key}">Upgrade</button>` : ''}
                     </div>
                 `;
             }).join('');
             
             container.querySelectorAll('.btn-upgrade-skill').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const skillKey = btn.getAttribute('data-skill');
-                    this.upgradeSkill(skillKey);
-                });
+                btn.addEventListener('click', () => this.upgradeSkill(btn.getAttribute('data-skill')));
             });
         }
+    }
+    
+    upgradeSkill(skillKey) {
+        if (this.state.player.skillPoints <= 0 || this.state.player.skills[skillKey] >= 100) return;
+        this.state.player.skillPoints--;
+        this.state.player.skills[skillKey]++;
+        this.addActivityLog('SKILL', `Upgraded ${SKILL_NAMES[skillKey]} to ${this.state.player.skills[skillKey]}`);
+        this.renderSkills();
+        this.saveGame();
     }
     
     renderStatistics() {
         const container = document.getElementById('statistics-container');
         if (container) {
-            const stats = this.state.statistics;
-            const statItems = [
-                { label: 'Total Missions', value: stats.totalMissions },
-                { label: 'Successful', value: stats.successfulMissions },
-                { label: 'Failed', value: stats.failedMissions },
-                { label: 'Money Earned', value: stats.moneyEarned },
-                { label: 'Money Spent', value: stats.moneySpent },
-                { label: 'XP Earned', value: stats.xpEarned },
-                { label: 'Highest Heat', value: stats.highestHeat },
-                { label: 'Play Time (s)', value: stats.playTime },
-                { label: 'Challenges', value: stats.challengesCompleted },
-                { label: 'Evidence Found', value: stats.evidenceFound },
-                { label: 'Reports', value: stats.reportsCompleted }
+            const s = this.state.statistics;
+            const items = [
+                { label: 'Total Missions', value: s.totalMissions },
+                { label: 'Successful', value: s.successfulMissions },
+                { label: 'Failed', value: s.failedMissions },
+                { label: 'Money Earned', value: s.moneyEarned },
+                { label: 'Money Spent', value: s.moneySpent },
+                { label: 'XP Earned', value: s.xpEarned },
+                { label: 'Highest Heat', value: s.highestHeat },
+                { label: 'Play Time (s)', value: s.playTime },
+                { label: 'Challenges', value: s.challengesCompleted },
+                { label: 'Evidence Found', value: s.evidenceFound },
+                { label: 'Reports', value: s.reportsCompleted }
             ];
-            
-            container.innerHTML = statItems.map(item => `
+            container.innerHTML = items.map(item => `
                 <div class="stat-box">
                     <div class="stat-num">${formatNumber(item.value)}</div>
                     <div class="stat-label">${item.label}</div>
@@ -1023,20 +1130,10 @@ class Game {
         const container = document.getElementById('settings-container');
         if (container) {
             container.innerHTML = `
-                <div class="setting-row">
-                    <label>Sound</label>
-                    <input type="checkbox" ${this.state.settings.sound ? 'checked' : ''} id="setting-sound">
-                </div>
-                <div class="setting-row">
-                    <label>Animations</label>
-                    <input type="checkbox" ${this.state.settings.animations ? 'checked' : ''} id="setting-animations">
-                </div>
-                <div class="setting-row">
-                    <label>Scanlines</label>
-                    <input type="checkbox" ${this.state.settings.scanlines ? 'checked' : ''} id="setting-scanlines">
-                </div>
-                <div class="setting-row">
-                    <label>Terminal Font Size</label>
+                <div class="setting-row"><label>Sound</label><input type="checkbox" ${this.state.settings.sound ? 'checked' : ''} id="setting-sound"></div>
+                <div class="setting-row"><label>Animations</label><input type="checkbox" ${this.state.settings.animations ? 'checked' : ''} id="setting-animations"></div>
+                <div class="setting-row"><label>Scanlines</label><input type="checkbox" ${this.state.settings.scanlines ? 'checked' : ''} id="setting-scanlines"></div>
+                <div class="setting-row"><label>Terminal Font Size</label>
                     <select id="setting-fontsize">
                         <option value="12" ${this.state.settings.terminalFontSize == 12 ? 'selected' : ''}>12px</option>
                         <option value="14" ${this.state.settings.terminalFontSize == 14 ? 'selected' : ''}>14px</option>
@@ -1044,12 +1141,8 @@ class Game {
                         <option value="18" ${this.state.settings.terminalFontSize == 18 ? 'selected' : ''}>18px</option>
                     </select>
                 </div>
-                <div class="setting-row">
-                    <label>Notifications</label>
-                    <input type="checkbox" ${this.state.settings.notifications ? 'checked' : ''} id="setting-notifications">
-                </div>
-                <div class="setting-row">
-                    <label>Difficulty</label>
+                <div class="setting-row"><label>Notifications</label><input type="checkbox" ${this.state.settings.notifications ? 'checked' : ''} id="setting-notifications"></div>
+                <div class="setting-row"><label>Difficulty</label>
                     <select id="setting-difficulty">
                         <option value="EASY" ${this.state.settings.difficulty === 'EASY' ? 'selected' : ''}>EASY</option>
                         <option value="NORMAL" ${this.state.settings.difficulty === 'NORMAL' ? 'selected' : ''}>NORMAL</option>
@@ -1068,14 +1161,12 @@ class Game {
                 this.state.settings.terminalFontSize = parseInt(document.getElementById('setting-fontsize').value);
                 this.state.settings.notifications = document.getElementById('setting-notifications').checked;
                 this.state.settings.difficulty = document.getElementById('setting-difficulty').value;
-                this.applySettings(); // Применяем настройки сразу
+                this.applySettings();
                 this.saveGame(true);
                 this.addNotification('Settings saved', 'success');
             });
             
-            document.getElementById('btn-reset-game').addEventListener('click', () => {
-                this.showResetConfirm();
-            });
+            document.getElementById('btn-reset-game').addEventListener('click', () => this.showResetConfirm());
         }
     }
     
@@ -1089,9 +1180,7 @@ class Game {
                 <h2>${title}</h2>
                 <div class="modal-content">${content}</div>
                 <div class="modal-buttons">
-                    ${buttons.map(btn => 
-                        `<button class="${btn.class || 'btn-primary'}" id="${btn.id}">${btn.label}</button>`
-                    ).join('')}
+                    ${buttons.map(btn => `<button class="${btn.class || 'btn-primary'}" id="${btn.id}">${btn.label}</button>`).join('')}
                 </div>
             </div>
         `;
@@ -1099,15 +1188,12 @@ class Game {
         
         buttons.forEach(btn => {
             const el = document.getElementById(btn.id);
-            if (el && btn.onClick) {
-                el.addEventListener('click', btn.onClick);
-            }
+            if (el && btn.onClick) el.addEventListener('click', btn.onClick);
         });
     }
     
     hideModal() {
-        const container = document.getElementById('modal-container');
-        if (container) container.classList.add('hidden');
+        document.getElementById('modal-container')?.classList.add('hidden');
     }
     
     showSettingsModal() {
@@ -1123,9 +1209,8 @@ class Game {
             { id: 'statistics', label: 'STATS' },
             { id: 'settings', label: 'SETTINGS' }
         ];
-        
         const content = screens.map(s => 
-            `<a href="#" data-screen="${s.id}" style="display:block; padding:10px; color:var(--cyan); text-decoration:none;">${s.label}</a>`
+            `<a href="#" data-screen="${s.id}" style="display:block;padding:10px;color:var(--cyan);text-decoration:none;">${s.label}</a>`
         ).join('');
         
         this.showModal('Menu', content, [
@@ -1134,7 +1219,8 @@ class Game {
     }
     
     showMissionDetails(missionId) {
-        const mission = [...this.state.missions.available, ...this.state.missions.active, ...this.state.missions.completed, ...this.state.missions.failed].find(m => m.id === missionId);
+        const allMissions = [...this.state.missions.available, ...this.state.missions.active, ...this.state.missions.completed, ...this.state.missions.failed];
+        const mission = allMissions.find(m => m.id === missionId);
         if (!mission) return;
         
         const content = `
@@ -1153,10 +1239,7 @@ class Game {
                 id: 'btn-accept-mission',
                 label: 'ACCEPT MISSION',
                 class: 'btn-primary',
-                onClick: () => {
-                    this.acceptMission(missionId);
-                    this.hideModal();
-                }
+                onClick: () => { this.acceptMission(missionId); this.hideModal(); }
             });
         }
         buttons.push({
@@ -1169,10 +1252,29 @@ class Game {
         this.showModal('Mission Details', content, buttons);
     }
     
+    acceptMission(missionId) {
+        const mission = this.state.missions.available.find(m => m.id === missionId);
+        if (!mission) return;
+        
+        this.state.missions.available = this.state.missions.available.filter(m => m.id !== missionId);
+        mission.status = 'active';
+        this.state.missions.active.push(mission);
+        this.currentMission = mission;
+        
+        this.state.statistics.totalMissions++;
+        this.addActivityLog('MISSION', `Mission started: ${mission.title}`);
+        this.eventBus.emit('EVENT_MISSION_ACCEPT', { mission });
+        this.addNotification(`Mission accepted: ${mission.title}`, 'mission');
+        this.saveGame();
+        this.renderMissions('active');
+        this.renderDashboard();
+    }
+    
     showResetConfirm() {
         this.showModal('Confirm Reset', '<p>Are you sure you want to reset all progress? This cannot be undone.</p>', [
             { id: 'btn-confirm-reset', label: 'YES, RESET', class: 'btn-primary', onClick: () => {
                 this.state.reset();
+                this.initializeWorld();
                 this.applySettings();
                 this.saveGame(true);
                 this.hideModal();
@@ -1182,10 +1284,81 @@ class Game {
         ]);
     }
     
+    // ==================== СИСТЕМА МИССИЙ ====================
+    checkMissionObjective(type, target) {
+        const activeMission = this.state.missions.active[0];
+        if (!activeMission) return;
+        
+        activeMission.objectives.forEach(obj => {
+            if (obj.completed) return;
+            if (obj.type === type) {
+                if (!target || obj.target === target) {
+                    obj.completed = true;
+                    this.addNotification(`Objective complete: ${obj.description}`, 'success');
+                    this.addActivityLog('MISSION', `Objective complete: ${obj.description}`);
+                    this.checkMissionCompletion(activeMission);
+                }
+            }
+        });
+    }
+    
+    checkMissionCompletion(mission) {
+        if (mission.objectives.every(o => o.completed)) {
+            this.completeMission(mission);
+        }
+    }
+    
+    completeMission(mission) {
+        this.state.missions.active = this.state.missions.active.filter(m => m.id !== mission.id);
+        mission.status = 'completed';
+        this.state.missions.completed.push(mission);
+        
+        this.state.player.credits += mission.reward;
+        this.state.player.xp += mission.xp;
+        this.state.statistics.successfulMissions++;
+        this.state.statistics.moneyEarned += mission.reward;
+        this.state.statistics.xpEarned += mission.xp;
+        
+        if (mission.storyFlag) {
+            this.state.story.flags[mission.storyFlag] = true;
+            this.state.story.progress++;
+        }
+        
+        this.eventBus.emit('EVENT_MISSION_COMPLETE', { mission });
+        this.checkLevelUp();
+        this.checkAchievements();
+        this.saveGame();
+        this.renderDashboard();
+        this.renderMissions('completed');
+    }
+    
+    checkLevelUp() {
+        const p = this.state.player;
+        while (p.xp >= p.xpToNext) {
+            p.xp -= p.xpToNext;
+            p.level++;
+            p.skillPoints++;
+            p.xpToNext = this.state.calculateXPToNext(p.level);
+            this.eventBus.emit('EVENT_LEVEL_UP', { level: p.level });
+        }
+    }
+    
+    checkAchievements() {
+        Object.values(this.state.achievements).forEach(ach => {
+            if (!ach.unlocked && ach.condition()) {
+                ach.unlocked = true;
+                this.addNotification(`ACHIEVEMENT UNLOCKED: ${ach.name}`, 'achievement');
+                this.addActivityLog('ACHIEVEMENT', `Unlocked: ${ach.name}`);
+            }
+        });
+    }
+    
     // ==================== ТЕРМИНАЛЬНЫЕ КОМАНДЫ ====================
     executeTerminalCommand(command) {
         const output = document.getElementById('terminal-output');
         if (!output) return;
+        
+        this.terminalHistory.push(command);
         
         const promptLine = document.createElement('div');
         promptLine.innerHTML = `<span style="color:var(--cyan)">root@blacknet:~$</span> ${command}`;
@@ -1198,84 +1371,34 @@ class Game {
         let response = '';
         
         switch (cmd) {
-            case 'help':
-                response = this.terminalHelp();
-                break;
-            case 'clear':
-                output.innerHTML = '';
-                return;
-            case 'status':
-                response = this.terminalStatus();
-                break;
-            case 'whoami':
-                response = this.terminalWhoami();
-                break;
-            case 'inventory':
-                response = this.terminalInventory();
-                break;
-            case 'missions':
-                response = this.terminalMissions();
-                break;
-            case 'scan':
-                response = this.terminalScan(args);
-                break;
-            case 'connect':
-                response = this.terminalConnect(args);
-                break;
-            case 'disconnect':
-                response = this.terminalDisconnect();
-                break;
-            case 'nodes':
-                response = this.terminalNodes();
-                break;
-            case 'inspect':
-                response = this.terminalInspect(args);
-                break;
-            case 'analyze':
-                response = this.terminalAnalyze(args);
-                break;
-            case 'decrypt':
-                response = this.terminalDecrypt(args);
-                break;
-            case 'hash':
-                response = this.terminalHash(args);
-                break;
-            case 'logs':
-                response = this.terminalLogs();
-                break;
-            case 'trace':
-                response = this.terminalTrace(args);
-                break;
-            case 'contacts':
-                response = this.terminalContacts();
-                break;
-            case 'market':
-                response = this.terminalMarket();
-                break;
-            case 'skills':
-                response = this.terminalSkills();
-                break;
-            case 'system':
-                response = this.terminalSystem();
-                break;
-            case 'history':
-                response = this.terminalHistory();
-                break;
-            case 'vm':
-                response = this.terminalVM(args);
-                break;
-            case 'evidence':
-                response = this.terminalEvidence();
-                break;
-            case 'report':
-                response = this.terminalReport();
-                break;
-            case 'debug':
-                if (this.state.settings.debugMode) {
-                    response = this.terminalDebug(args);
-                } else {
-                    response = 'Debug mode is disabled.';
-                }
+            case 'help': response = this.terminalHelp(); break;
+            case 'clear': output.innerHTML = ''; return;
+            case 'status': response = this.terminalStatus(); break;
+            case 'whoami': response = this.terminalWhoami(); break;
+            case 'inventory': response = this.terminalInventory(); break;
+            case 'missions': response = this.terminalMissions(); break;
+            case 'scan': response = this.terminalScan(args); break;
+            case 'connect': response = this.terminalConnect(args); break;
+            case 'disconnect': response = this.terminalDisconnect(); break;
+            case 'nodes': response = this.terminalNodes(); break;
+            case 'inspect': response = this.terminalInspect(args); break;
+            case 'analyze': response = this.terminalAnalyze(args); break;
+            case 'decrypt': response = this.terminalDecrypt(args); break;
+            case 'hash': response = this.terminalHash(args); break;
+            case 'logs': response = this.terminalLogs(); break;
+            case 'trace': response = this.terminalTrace(args); break;
+            case 'contacts': response = this.terminalContacts(); break;
+            case 'market': response = this.terminalMarket(); break;
+            case 'skills': response = this.terminalSkills(); break;
+            case 'system': response = this.terminalSystem(); break;
+            case 'history': response = this.terminalHistoryCmd(); break;
+            case 'vm': response = this.terminalVM(args); break;
+            case 'evidence': response = this.terminalEvidence(); break;
+            case 'report': response = this.terminalReport(); break;
+            case 'debug': response = this.state.settings.debugMode ? this.terminalDebug(args) : 'Debug mode is disabled.'; break;
+            case 'sudo':
+            case 'su':
+                response = 'Nice try. This is a virtual environment.';
                 break;
             default:
                 response = `Command not found: ${command}. Type "help" for available commands.`;
@@ -1288,7 +1411,6 @@ class Game {
         }
         
         output.scrollTop = output.scrollHeight;
-        
         this.state.statistics.terminalCommandsUsed++;
         this.addActivityLog('TERMINAL', `Command: ${command}`);
     }
@@ -1300,8 +1422,8 @@ class Game {
   status      - Show system status
   whoami      - Show current user
   inventory   - Show inventory
-  missions    - Show missions
-  scan        - Scan network (usage: scan [target])
+  missions    - Show active missions
+  scan        - Scan network (usage: scan network)
   connect     - Connect to node (usage: connect <node_id>)
   disconnect  - Disconnect from current node
   nodes       - List known nodes
@@ -1316,10 +1438,10 @@ class Game {
   skills      - Show skills
   system      - Show system info
   history     - Show terminal history
-  vm          - Manage virtual machines
+  vm          - Manage virtual machines (vm list)
   evidence    - Show evidence
   report      - Generate report
-  (Type "debug" for debug commands if enabled)`;
+  debug       - Debug commands (if enabled)`;
     }
     
     terminalStatus() {
@@ -1341,9 +1463,7 @@ ID: ${this.state.player.id}`;
     
     terminalInventory() {
         if (this.state.inventory.length === 0) return 'Inventory is empty.';
-        return this.state.inventory.map(item => 
-            `${item.name} (x${item.quantity}) — ${item.rarity}`
-        ).join('\n');
+        return this.state.inventory.map(item => `${item.name} (x${item.quantity}) — ${item.rarity}`).join('\n');
     }
     
     terminalMissions() {
@@ -1353,34 +1473,25 @@ ID: ${this.state.player.id}`;
     }
     
     terminalScan(args) {
-        if (args.length === 0) {
-            return 'Usage: scan <target> — target can be "network" or an IP address.';
-        }
-        if (args[0] === 'network') {
-            setTimeout(() => {
-                const output = document.getElementById('terminal-output');
-                if (output) {
-                    const line = document.createElement('div');
-                    line.textContent = 'Scanning network...';
-                    output.appendChild(line);
-                    output.scrollTop = output.scrollHeight;
-                }
-            }, 100);
-            setTimeout(() => {
-                this.addNotification('Network scan complete', 'success');
-                this.state.statistics.networkNodesAnalyzed++;
-            }, 1000);
-            return 'Scanning initiated...';
-        }
-        return `Scanning ${args[0]}... (not implemented yet)`;
+        if (args.length === 0 || args[0] !== 'network') return 'Usage: scan network';
+        // Находим новые узлы (упрощённо: просто уведомляем)
+        this.addNotification('Network scan complete', 'success');
+        this.state.statistics.networkNodesAnalyzed++;
+        this.checkMissionObjective('scan_network');
+        return 'Scanning network... complete.';
     }
     
     terminalConnect(args) {
         if (args.length === 0) return 'Usage: connect <node_id>';
-        return `Connecting to ${args[0]}... (feature coming soon)`;
+        const node = this.state.network.nodes.find(n => n.id === args[0]);
+        if (!node) return `Node ${args[0]} not found.`;
+        this.state.network.currentNode = node.id;
+        this.checkMissionObjective('connect_node', node.id);
+        return `Connected to ${node.name}.`;
     }
     
     terminalDisconnect() {
+        this.state.network.currentNode = null;
         return 'Disconnected.';
     }
     
@@ -1394,6 +1505,7 @@ ID: ${this.state.player.id}`;
         if (args.length === 0) return 'Usage: inspect <node_id>';
         const node = this.state.network.nodes.find(n => n.id === args[0]);
         if (!node) return `Node ${args[0]} not found.`;
+        this.inspectNode(node.id);
         return `Node: ${node.name}
 Type: ${node.type}
 Security: ${node.security || 'unknown'}
@@ -1402,12 +1514,14 @@ Status: ${node.status || 'unknown'}`;
     
     terminalAnalyze(args) {
         if (args.length === 0) return 'Usage: analyze <object>';
-        return `Analyzing ${args[0]}... (feature coming soon)`;
+        // Имитация анализа
+        this.checkMissionObjective('analyze_log', args[0]);
+        return `Analyzing ${args[0]}... done. No anomalies found.`;
     }
     
     terminalDecrypt(args) {
         if (args.length === 0) return 'Usage: decrypt <file>';
-        return `Decrypting ${args[0]}... (feature coming soon)`;
+        return `Decrypting ${args[0]}... (use "solve puzzle" for decryption mini-game)`;
     }
     
     terminalHash(args) {
@@ -1423,7 +1537,8 @@ Status: ${node.status || 'unknown'}`;
     
     terminalTrace(args) {
         if (args.length === 0) return 'Usage: trace <target>';
-        return `Tracing route to ${args[0]}... (feature coming soon)`;
+        this.checkMissionObjective('trace_origin');
+        return `Tracing route to ${args[0]}... complete.`;
     }
     
     terminalContacts() {
@@ -1431,97 +1546,87 @@ Status: ${node.status || 'unknown'}`;
         if (contacts.length === 0) return 'No contacts yet.';
         return contacts.map(name => {
             const rel = this.state.relationships[name];
-            return `${name} — Trust: ${rel.trust || 0}`;
+            return `${name} — Trust: ${rel.trust}`;
         }).join('\n');
     }
     
     terminalMarket() {
-        return 'Market: use "market list" to see items (feature coming soon)';
+        return 'Market: ' + this.state.market.items.map(i => `${i.name} (${i.price} Cr)`).join(', ');
     }
     
     terminalSkills() {
         const skills = this.state.player.skills;
-        return Object.keys(skills).map(key => 
-            `${SKILL_NAMES[key]}: ${skills[key]}/100`
-        ).join('\n');
+        return Object.keys(skills).map(key => `${SKILL_NAMES[key]}: ${skills[key]}/100`).join('\n');
     }
     
     terminalSystem() {
         return `BLACKNET: ZERO DAY v${GAME_VERSION}
 OS: BLACKNET OS
-Kernel: 5.15.0-blacknet
 Uptime: ${Math.floor(this.state.player.playTime / 60)} min`;
     }
     
-    terminalHistory() {
-        return 'Terminal history not available in this version.';
+    terminalHistoryCmd() {
+        if (this.terminalHistory.length === 0) return 'No command history.';
+        return this.terminalHistory.slice(-20).join('\n');
     }
     
     terminalVM(args) {
         if (args.length === 0) return 'Usage: vm list | vm create <os>';
         if (args[0] === 'list') {
             if (this.state.vms.length === 0) return 'No virtual machines.';
-            return this.state.vms.map(vm => 
-                `${vm.id} — ${vm.os} (${vm.status})`
-            ).join('\n');
+            return this.state.vms.map(vm => `${vm.id} — ${vm.os} (${vm.status})`).join('\n');
         }
-        return `Creating VM... (feature coming soon)`;
+        if (args[0] === 'create' && args[1]) {
+            const vm = { id: generateId('vm'), os: args[1].toUpperCase(), status: 'running', cpu: 1, ram: 1024, storage: 10 };
+            this.state.vms.push(vm);
+            this.addActivityLog('VM', `Created VM: ${vm.os}`);
+            return `VM created: ${vm.os}`;
+        }
+        return 'Unknown VM command.';
     }
     
     terminalEvidence() {
         if (this.state.evidence.length === 0) return 'No evidence found.';
-        return this.state.evidence.map(ev => 
-            `${ev.title} [${ev.type}] — ${ev.reliability}`
-        ).join('\n');
+        return this.state.evidence.map(ev => `${ev.title} [${ev.type}] — ${ev.reliability}`).join('\n');
     }
     
     terminalReport() {
-        return 'Report generation not available yet.';
+        if (!this.state.forensics.currentCase) return 'No active case to report.';
+        // Генерация отчёта
+        const report = {
+            id: generateId('report'),
+            title: this.state.forensics.currentCase.title,
+            grade: 'A', // Упрощённо
+            date: Date.now()
+        };
+        this.state.forensics.reports.push(report);
+        this.state.statistics.reportsCompleted++;
+        this.checkMissionObjective('complete_report');
+        return `Report generated: ${report.title} — Grade ${report.grade}`;
     }
     
     terminalDebug(args) {
         if (args.length === 0) return 'Usage: debug add-xp <amount> | add-money <amount> | reset-save';
         switch (args[0]) {
-            case 'add-xp':
+            case 'add-xp': {
                 const xp = parseInt(args[1]) || 10;
                 this.state.player.xp += xp;
                 this.checkLevelUp();
                 return `Added ${xp} XP.`;
-            case 'add-money':
+            }
+            case 'add-money': {
                 const money = parseInt(args[1]) || 100;
                 this.state.player.credits += money;
                 return `Added ${money} credits.`;
+            }
             case 'reset-save':
                 this.state.reset();
+                this.initializeWorld();
                 this.saveGame(true);
                 return 'Save reset.';
             default:
                 return 'Unknown debug command.';
         }
-    }
-    
-    // Вспомогательные функции
-    checkLevelUp() {
-        const p = this.state.player;
-        while (p.xp >= p.xpToNext) {
-            p.xp -= p.xpToNext;
-            p.level++;
-            p.skillPoints++;
-            p.xpToNext = this.state.calculateXPToNext(p.level);
-            this.addNotification(`LEVEL UP! You are now level ${p.level}`, 'success');
-            this.eventBus.emit('EVENT_LEVEL_UP', { level: p.level });
-        }
-    }
-    
-    upgradeSkill(skillKey) {
-        if (this.state.player.skillPoints <= 0) return;
-        if (this.state.player.skills[skillKey] >= 100) return;
-        
-        this.state.player.skillPoints--;
-        this.state.player.skills[skillKey]++;
-        this.addActivityLog('SKILL', `Upgraded ${SKILL_NAMES[skillKey]} to ${this.state.player.skills[skillKey]}`);
-        this.renderSkills();
-        this.saveGame();
     }
     
     update() {
@@ -1530,6 +1635,9 @@ Uptime: ${Math.floor(this.state.player.playTime / 60)} min`;
         if (this.state.system.bootSequenceComplete) {
             this.state.player.playTime += 1;
             this.state.statistics.playTime += 1;
+            if (this.state.player.heat > this.state.statistics.highestHeat) {
+                this.state.statistics.highestHeat = this.state.player.heat;
+            }
         }
         
         requestAnimationFrame(() => this.update());
@@ -1541,24 +1649,11 @@ Uptime: ${Math.floor(this.state.player.playTime / 60)} min`;
     }
 }
 
-// Вспомогательная функция для генерации фиктивного хеша
-function generateFakeHash(input) {
-    let hash = 0;
-    for (let i = 0; i < input.length; i++) {
-        const char = input.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash |= 0;
-    }
-    return Math.abs(hash).toString(16).padStart(8, '0').repeat(4).slice(0, 64);
-}
-
-// ==================== INITIALIZATION ====================
+// ==================== ИНИЦИАЛИЗАЦИЯ ====================
 const game = new Game();
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        game.start();
-    });
+    document.addEventListener('DOMContentLoaded', () => game.start());
 } else {
     game.start();
 }
