@@ -1,27 +1,28 @@
 /* =====================================================
-   BLACKNET: ZERO DAY — Финальные стили
+   BLACKNET: ZERO DAY — Стили (переработанные)
    ===================================================== */
 
 :root {
-    --bg-primary: #0a0a0f;
-    --bg-secondary: #0f0f1a;
-    --bg-panel: rgba(15, 15, 30, 0.85);
-    --bg-glass: rgba(20, 20, 40, 0.6);
-    --text-primary: #e0e0e0;
-    --text-secondary: #a0a0b0;
-    --text-muted: #606070;
-    --cyan: #00e5ff;
-    --cyan-dark: #00b0cc;
-    --green: #00ff88;
-    --green-dark: #00cc66;
-    --red: #ff3355;
-    --red-dark: #cc1133;
-    --yellow: #ffcc00;
+    --bg-primary: #0a0f1a;
+    --bg-secondary: #111827;
+    --bg-panel: rgba(17, 24, 39, 0.9);
+    --bg-glass: rgba(30, 41, 59, 0.7);
+    --text-primary: #e5e7eb;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+    --cyan: #06b6d4;
+    --cyan-dark: #0891b2;
+    --green: #10b981;
+    --green-dark: #059669;
+    --red: #ef4444;
+    --red-dark: #dc2626;
+    --yellow: #f59e0b;
     --white: #ffffff;
-    --border: rgba(0, 229, 255, 0.2);
-    --border-active: rgba(0, 229, 255, 0.6);
+    --border: rgba(6, 182, 212, 0.2);
+    --border-active: rgba(6, 182, 212, 0.6);
     --font-mono: 'Courier New', monospace;
     --font-sans: 'Segoe UI', Tahoma, sans-serif;
+    --transition: 0.3s ease;
 }
 
 * {
@@ -30,34 +31,12 @@
     box-sizing: border-box;
 }
 
-html, body {
-    height: 100%;
+body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-family: var(--font-sans);
     overflow-x: hidden;
-}
-
-body::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent 2px,
-        rgba(0, 0, 0, 0.3) 2px,
-        rgba(0, 0, 0, 0.3) 4px
-    );
-    z-index: 999;
-}
-
-body.no-scanlines::after {
-    opacity: 0;
+    min-height: 100vh;
 }
 
 #app {
@@ -65,7 +44,6 @@ body.no-scanlines::after {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    position: relative;
 }
 
 .screen {
@@ -78,50 +56,48 @@ body.no-scanlines::after {
     display: flex;
 }
 
-/* ---------- Start Screen ---------- */
+/* ---------- Стартовый экран ---------- */
 #start-screen {
     justify-content: center;
     align-items: center;
-    background: radial-gradient(ellipse at center, #0a0a1a 0%, #000000 100%);
+    background: radial-gradient(ellipse at center, #0f172a, #000000);
+    flex-direction: column;
+    padding: 20px;
 }
 
 .start-container {
     text-align: center;
-    padding: 40px 20px;
     max-width: 600px;
     width: 100%;
 }
 
 .game-title h1 {
     font-family: var(--font-mono);
-    font-size: 3.5rem;
-    letter-spacing: 0.3em;
+    font-size: 3rem;
+    letter-spacing: 0.2em;
     color: var(--cyan);
-    text-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
-    margin-bottom: 10px;
+    text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
 }
 
 .game-title h2 {
     font-family: var(--font-mono);
-    font-size: 1.8rem;
-    letter-spacing: 0.5em;
+    font-size: 1.5rem;
+    letter-spacing: 0.4em;
     color: var(--text-secondary);
     margin-bottom: 20px;
 }
 
 .tagline {
-    font-family: var(--font-mono);
     color: var(--text-muted);
     font-style: italic;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
 }
 
 .start-buttons {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    max-width: 300px;
-    margin: 0 auto;
+    gap: 12px;
+    margin-bottom: 30px;
 }
 
 .btn-primary, .btn-secondary {
@@ -133,17 +109,16 @@ body.no-scanlines::after {
     border: 1px solid var(--border);
     background: var(--bg-glass);
     color: var(--text-primary);
-    transition: all 0.3s ease;
+    transition: all var(--transition);
     text-transform: uppercase;
-    position: relative;
-    overflow: hidden;
+    border-radius: 8px;
 }
 
 .btn-primary:hover:not(:disabled),
 .btn-secondary:hover:not(:disabled) {
     border-color: var(--border-active);
-    background: rgba(0, 229, 255, 0.1);
-    box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+    background: rgba(6, 182, 212, 0.2);
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
 }
 
 .btn-primary:disabled {
@@ -151,35 +126,23 @@ body.no-scanlines::after {
     cursor: not-allowed;
 }
 
-.btn-primary::before,
-.btn-secondary::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    transition: left 0.5s;
+.intro-text {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
 }
 
-.btn-primary:hover::before,
-.btn-secondary:hover::before {
-    left: 100%;
-}
-
-/* ---------- Boot Screen ---------- */
+/* ---------- Экран загрузки ---------- */
 #boot-screen {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: #000000;
+    background: #000;
 }
 
 .boot-container {
     width: 90%;
     max-width: 700px;
-    padding: 20px;
 }
 
 .boot-log {
@@ -187,9 +150,8 @@ body.no-scanlines::after {
     font-size: 0.9rem;
     color: var(--green);
     min-height: 300px;
-    margin-bottom: 30px;
-    line-height: 1.6;
-    text-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
+    margin-bottom: 20px;
+    line-height: 1.5;
 }
 
 .boot-log .boot-line {
@@ -205,53 +167,100 @@ body.no-scanlines::after {
     display: none !important;
 }
 
-/* ---------- Main Game Screen ---------- */
+/* ---------- Основной игровой экран ---------- */
 #game-screen {
     flex-direction: row;
     min-height: 100vh;
 }
 
 #sidebar {
-    width: 220px;
-    min-width: 220px;
+    width: 240px;
+    min-width: 240px;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border);
-    padding: 20px 0;
-    overflow-y: auto;
+    padding: 15px 0;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.logo {
+    font-family: var(--font-mono);
+    font-weight: bold;
+    color: var(--cyan);
+}
+
+.version {
+    font-size: 0.7rem;
+    color: var(--text-muted);
 }
 
 #main-nav ul {
     list-style: none;
+    padding: 10px 0;
 }
 
-#main-nav li {
-    margin: 2px 0;
+.nav-group {
+    padding: 8px 15px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
 }
 
 #main-nav a {
     display: block;
-    padding: 10px 20px;
+    padding: 10px 15px;
     color: var(--text-secondary);
     text-decoration: none;
     font-family: var(--font-mono);
     font-size: 0.85rem;
-    letter-spacing: 0.05em;
     transition: all 0.2s;
     border-left: 3px solid transparent;
 }
 
 #main-nav a:hover {
     color: var(--cyan);
-    background: rgba(0, 229, 255, 0.05);
+    background: rgba(6, 182, 212, 0.1);
     border-left-color: var(--cyan);
 }
 
 #main-nav a.active {
     color: var(--cyan);
     border-left-color: var(--cyan);
-    background: rgba(0, 229, 255, 0.08);
+    background: rgba(6, 182, 212, 0.15);
+}
+
+.icon {
+    margin-right: 8px;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: 15px;
+}
+
+.help-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.2s;
+}
+
+.help-btn:hover {
+    background: rgba(6, 182, 212, 0.2);
 }
 
 #main-content {
@@ -259,7 +268,6 @@ body.no-scanlines::after {
     padding: 20px;
     overflow-y: auto;
     background: var(--bg-primary);
-    position: relative;
 }
 
 .game-screen-content {
@@ -268,10 +276,10 @@ body.no-scanlines::after {
 
 .game-screen-content.active {
     display: block;
-    animation: contentFade 0.3s ease;
+    animation: fadeIn 0.3s;
 }
 
-@keyframes contentFade {
+@keyframes fadeIn {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
 }
@@ -280,33 +288,24 @@ body.no-scanlines::after {
     font-family: var(--font-mono);
     font-size: 1.5rem;
     letter-spacing: 0.1em;
-    margin-bottom: 20px;
     color: var(--cyan);
-    text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
     border-bottom: 1px solid var(--border);
-    padding-bottom: 5px;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
 }
 
-/* ---------- Panels ---------- */
-.panel, .mission-card, .item-card, .skill-card, .stat-box,
+/* ---------- Общие компоненты ---------- */
+.panel, .card, .mission-card, .item-card, .skill-card, .stat-box,
 .forensics-case, .forensics-timeline, .forensics-report,
-.network-info, .setting-row {
+.network-info, .setting-row, .help-section {
     background: var(--bg-panel);
     border: 1px solid var(--border);
-    border-radius: 5px;
+    border-radius: 8px;
     padding: 15px;
-    backdrop-filter: blur(5px);
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    margin-bottom: 15px;
 }
 
-/* ---------- Dashboard ---------- */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 15px;
-}
-
-.panel h3 {
+.panel h3, .card h3 {
     font-family: var(--font-mono);
     font-size: 0.9rem;
     letter-spacing: 0.1em;
@@ -319,7 +318,7 @@ body.no-scanlines::after {
 .stat-row {
     display: flex;
     justify-content: space-between;
-    padding: 3px 0;
+    padding: 4px 0;
     font-size: 0.9rem;
 }
 
@@ -330,250 +329,45 @@ body.no-scanlines::after {
 .stat-value {
     font-weight: bold;
     font-family: var(--font-mono);
-    color: var(--text-primary);
 }
 
-.activity-log {
-    max-height: 200px;
-    overflow-y: auto;
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    background: rgba(0,0,0,0.2);
-    padding: 5px;
-    border-radius: 3px;
-}
-
-.activity-log div {
-    padding: 2px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-/* ---------- Terminal ---------- */
-.terminal-window {
-    background: #0a0a0f;
-    border: 1px solid var(--border);
-    padding: 10px;
-    font-family: var(--font-mono);
-    font-size: 14px;
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
-}
-
-.terminal-output {
-    min-height: 400px;
-    max-height: 500px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    color: var(--green);
-    margin-bottom: 10px;
-    text-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
-}
-
-.terminal-output div {
-    line-height: 1.4;
-}
-
-.terminal-input-line {
-    display: flex;
-    align-items: center;
-    border-top: 1px solid var(--border);
-    padding-top: 5px;
-}
-
-.prompt {
-    color: var(--cyan);
-    margin-right: 8px;
-    white-space: nowrap;
-}
-
-#terminal-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--white);
-    font-family: var(--font-mono);
-    font-size: 14px;
-    caret-color: var(--green);
-}
-
-/* ---------- Missions ---------- */
-.missions-tabs, .market-tabs {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-}
-
-.tab-btn {
+.btn {
     padding: 8px 16px;
-    background: var(--bg-panel);
     border: 1px solid var(--border);
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    transition: all 0.2s;
-}
-
-.tab-btn.active {
-    border-color: var(--border-active);
-    color: var(--cyan);
-    background: rgba(0, 229, 255, 0.1);
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
-}
-
-.missions-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.mission-card {
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.mission-card:hover {
-    border-color: var(--border-active);
-    box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
-    transform: translateY(-1px);
-}
-
-.mission-card h4 {
-    font-family: var(--font-mono);
-    color: var(--text-primary);
-    margin-bottom: 5px;
-}
-
-.mission-card .mission-desc {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-}
-
-.mission-card .mission-meta {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-/* ---------- Network ---------- */
-.network-map {
-    height: 400px;
-    border: 1px solid var(--border);
-    background: #050510;
-    margin-bottom: 15px;
-    position: relative;
-    overflow: hidden;
-}
-
-.network-map::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
-        linear-gradient(rgba(0, 229, 255, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 229, 255, 0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
-    pointer-events: none;
-}
-
-.network-info {
-    min-height: 100px;
-}
-
-/* ---------- Forensics ---------- */
-.forensics-case, .forensics-timeline, .forensics-report {
-    margin-bottom: 15px;
-}
-
-.forensics-timeline {
-    border-left: 2px solid var(--cyan);
-    padding-left: 20px;
-}
-
-/* ---------- Intelligence ---------- */
-.intelligence-board {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    min-height: 200px;
-}
-
-/* ---------- Market / Inventory ---------- */
-.market-items, .inventory-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 10px;
-}
-
-.item-card {
-    display: flex;
-    flex-direction: column;
-    transition: all 0.2s;
-}
-
-.item-card:hover {
-    border-color: var(--border-active);
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
-}
-
-.item-card .item-name {
-    font-family: var(--font-mono);
-    color: var(--text-primary);
-    margin-bottom: 5px;
-}
-
-.item-card .item-desc {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    flex: 1;
-}
-
-.item-card .item-price {
-    font-family: var(--font-mono);
-    color: var(--yellow);
-    margin: 5px 0;
-}
-
-.item-card button {
-    padding: 6px 12px;
     background: var(--bg-glass);
-    border: 1px solid var(--border);
     color: var(--text-primary);
     cursor: pointer;
+    border-radius: 5px;
     font-family: var(--font-mono);
+    font-size: 0.85rem;
     transition: all 0.2s;
 }
 
-.item-card button:hover {
+.btn:hover {
     border-color: var(--border-active);
-    background: rgba(0, 229, 255, 0.1);
+    background: rgba(6, 182, 212, 0.2);
 }
 
-/* ---------- Skills ---------- */
-.skills-container {
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-success {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: var(--green);
+}
+
+.btn-danger {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--red);
+}
+
+/* ---------- Dashboard ---------- */
+.dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 15px;
-}
-
-.skill-card h3 {
-    font-family: var(--font-mono);
-    color: var(--text-primary);
-    margin-bottom: 5px;
-}
-
-.skill-card .skill-desc {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
 }
 
 .progress-bar {
@@ -586,44 +380,205 @@ body.no-scanlines::after {
 .progress-fill {
     height: 100%;
     background: var(--cyan);
-    transition: width 0.3s;
-    box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+    transition: width 0.5s;
 }
 
-/* ---------- Statistics ---------- */
-.statistics-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 10px;
+/* ---------- Терминал ---------- */
+.terminal-window {
+    background: #0a0f1a;
+    border: 1px solid var(--border);
+    padding: 10px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    border-radius: 5px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
 }
 
-.stat-box {
-    text-align: center;
+.terminal-output {
+    min-height: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    color: var(--green);
+    margin-bottom: 10px;
+    text-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
+}
+
+.terminal-input-line {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    padding-top: 5px;
+}
+
+.prompt {
+    color: var(--cyan);
+    margin-right: 8px;
+}
+
+#terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 14px;
+}
+
+/* ---------- Миссии ---------- */
+.missions-tabs, .market-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 5px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
     transition: all 0.2s;
 }
 
-.stat-box:hover {
+.tab-btn.active {
     border-color: var(--border-active);
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
-}
-
-.stat-box .stat-num {
-    font-size: 1.8rem;
-    font-family: var(--font-mono);
     color: var(--cyan);
-    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+    background: rgba(6, 182, 212, 0.1);
 }
 
-.stat-box .stat-label {
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-}
-
-/* ---------- Settings ---------- */
-.settings-container {
+.missions-container {
     display: flex;
     flex-direction: column;
+    gap: 10px;
+}
+
+.mission-card {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mission-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+/* ---------- Сетевая карта ---------- */
+.network-map {
+    height: 400px;
+    border: 1px solid var(--border);
+    background: #050510;
+    margin-bottom: 15px;
+    position: relative;
+    overflow: auto;
+    border-radius: 5px;
+}
+
+.network-node {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: var(--cyan);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #fff;
+    transform: translate(-50%, -50%);
+    transition: all 0.3s;
+    z-index: 2;
+}
+
+.network-node.analyzed {
+    background: var(--green);
+    box-shadow: 0 0 15px var(--green);
+}
+
+.network-node:hover {
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: 0 0 20px rgba(6,182,212,0.8);
+}
+
+.network-line {
+    position: absolute;
+    background: var(--border);
+    height: 2px;
+    transform-origin: left center;
+    z-index: 1;
+}
+
+/* ---------- Forensics ---------- */
+.forensics-timeline {
+    border-left: 2px solid var(--cyan);
+    padding-left: 20px;
+}
+
+/* ---------- Intelligence ---------- */
+.intelligence-board {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 100px;
+}
+
+/* ---------- Market / Inventory ---------- */
+.market-items, .inventory-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 10px;
+}
+
+.item-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.item-card .item-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.item-card .item-price {
+    color: var(--yellow);
+    margin: 5px 0;
+}
+
+/* ---------- Skills ---------- */
+.skills-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 15px;
+}
+
+/* ---------- Профиль ---------- */
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--cyan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+
+/* ---------- Настройки ---------- */
+.settings-container {
     max-width: 500px;
 }
 
@@ -634,66 +589,36 @@ body.no-scanlines::after {
     padding: 10px;
 }
 
-.setting-row label {
-    font-family: var(--font-mono);
-    color: var(--text-primary);
-}
-
-.setting-row select,
-.setting-row input[type="checkbox"] {
-    padding: 5px;
-    background: var(--bg-glass);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    font-family: var(--font-mono);
-}
-
-/* ---------- Modal ---------- */
+/* ---------- Модальные окна ---------- */
 .modal-container {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0,0,0,0.7);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 200;
-    animation: modalFadeIn 0.2s ease;
-}
-
-@keyframes modalFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    animation: fadeIn 0.2s;
 }
 
 .modal-box {
     background: var(--bg-panel);
     border: 1px solid var(--border-active);
-    padding: 30px;
+    padding: 25px;
     max-width: 500px;
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
-    animation: modalSlideUp 0.3s ease;
-}
-
-@keyframes modalSlideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(6,182,212,0.3);
 }
 
 .modal-box h2 {
-    font-family: var(--font-mono);
     color: var(--cyan);
     margin-bottom: 15px;
-}
-
-.modal-box p {
-    margin-bottom: 15px;
-    color: var(--text-secondary);
 }
 
 .modal-buttons {
@@ -703,7 +628,7 @@ body.no-scanlines::after {
     margin-top: 20px;
 }
 
-/* ---------- Notifications ---------- */
+/* ---------- Уведомления ---------- */
 .notification-container {
     position: fixed;
     top: 20px;
@@ -712,19 +637,17 @@ body.no-scanlines::after {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-width: 350px;
+    max-width: 320px;
 }
 
 .notification {
     background: var(--bg-panel);
     border: 1px solid var(--border);
-    padding: 12px 18px;
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    animation: notificationSlideIn 0.3s ease;
-    border-radius: 4px;
-    backdrop-filter: blur(5px);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    animation: slideInRight 0.3s;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
 .notification.info { border-left: 3px solid var(--cyan); }
@@ -733,13 +656,79 @@ body.no-scanlines::after {
 .notification.error { border-left: 3px solid var(--red); }
 .notification.mission { border-left: 3px solid #aa66ff; }
 .notification.system { border-left: 3px solid var(--white); }
+.notification.achievement { border-left: 3px solid #ffaa00; }
 
-@keyframes notificationSlideIn {
+@keyframes slideInRight {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* ---------- Mobile Nav ---------- */
+/* ---------- Обучение ---------- */
+.tutorial-overlay {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-active);
+    padding: 15px 20px;
+    border-radius: 10px;
+    z-index: 400;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 0 20px rgba(6,182,212,0.4);
+}
+
+.tutorial-content {
+    margin-bottom: 10px;
+}
+
+/* ---------- Справка ---------- */
+.help-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 320px;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border-active);
+    z-index: 350;
+    padding: 20px;
+    overflow-y: auto;
+    animation: slideInLeft 0.3s;
+}
+
+.help-panel h3 {
+    color: var(--cyan);
+    margin-bottom: 15px;
+}
+
+.help-category {
+    margin-bottom: 20px;
+}
+
+.help-category h4 {
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 5px;
+}
+
+.help-item {
+    margin-bottom: 10px;
+}
+
+.help-item .term {
+    font-weight: bold;
+    color: var(--cyan);
+}
+
+@keyframes slideInLeft {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+/* ---------- Мобильная навигация ---------- */
 #mobile-nav {
     display: none;
     position: fixed;
@@ -749,67 +738,66 @@ body.no-scanlines::after {
     background: var(--bg-secondary);
     border-top: 1px solid var(--border);
     z-index: 100;
-    backdrop-filter: blur(5px);
+    justify-content: space-around;
+    padding: 8px 0;
 }
 
 #mobile-nav a {
-    flex: 1;
-    text-align: center;
-    padding: 12px 0;
     color: var(--text-secondary);
     text-decoration: none;
     font-family: var(--font-mono);
     font-size: 0.7rem;
-    letter-spacing: 0.05em;
-    transition: all 0.2s;
+    text-align: center;
+    flex: 1;
+    padding: 5px 0;
 }
 
 #mobile-nav a.active {
     color: var(--cyan);
-    background: rgba(0, 229, 255, 0.05);
 }
 
-/* ---------- Responsive ---------- */
+/* ---------- Адаптивность ---------- */
 @media (max-width: 768px) {
     #game-screen {
         flex-direction: column;
     }
-    
     #sidebar {
         display: none;
     }
-    
     #mobile-nav {
         display: flex;
     }
-    
     #main-content {
         padding: 15px;
         padding-bottom: 70px;
     }
-    
     .dashboard-grid {
         grid-template-columns: 1fr;
     }
-    
     .terminal-output {
         max-height: 300px;
     }
-    
+    .network-map {
+        height: 300px;
+    }
     .mission-card .mission-meta {
         flex-direction: column;
         gap: 5px;
     }
-    
-    .market-items, .inventory-list, .skills-container, .statistics-container {
+    .market-items, .inventory-list, .skills-container {
         grid-template-columns: 1fr;
     }
-    
-    .game-title h1 {
-        font-size: 2.5rem;
+}
+
+@media (max-width: 380px) {
+    #main-content {
+        padding: 10px;
     }
-    
-    .game-title h2 {
-        font-size: 1.4rem;
+    .screen-title {
+        font-size: 1.2rem;
+    }
+    .btn {
+        padding: 6px 12px;
+        font-size: 0.75rem;
     }
 }
