@@ -1,12 +1,11 @@
 // =====================================================
-// BLACKNET: ZERO DAY — Финальная версия
-// Полная игра со всеми системами
+// BLACKNET: ZERO DAY — Полная версия со всеми системами
 // =====================================================
 
 'use strict';
 
 // ==================== КОНСТАНТЫ ====================
-const GAME_VERSION = '1.0.0';
+const GAME_VERSION = '2.0.0';
 const SAVE_VERSION = 2;
 
 const SKILLS = {
@@ -204,6 +203,78 @@ class EventBus {
     }
 }
 
+// ==================== АУДИО СИСТЕМА ====================
+class AudioSystem {
+    constructor() {
+        this.context = null;
+        this.enabled = true;
+        this.volume = 0.3;
+    }
+    
+    init() {
+        if (!this.context) {
+            try {
+                this.context = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.warn('Web Audio API not supported');
+            }
+        }
+    }
+    
+    play(type) {
+        if (!this.enabled || !this.context) return;
+        
+        this.init();
+        const ctx = this.context;
+        
+        switch(type) {
+            case 'click':
+                this.playTone(800, 0.05);
+                break;
+            case 'success':
+                this.playTone(1200, 0.1);
+                setTimeout(() => this.playTone(1600, 0.1), 100);
+                break;
+            case 'error':
+                this.playTone(200, 0.2);
+                break;
+            case 'notification':
+                this.playTone(900, 0.08);
+                break;
+            case 'mission':
+                this.playTone(1000, 0.15);
+                setTimeout(() => this.playTone(1300, 0.15), 150);
+                break;
+            case 'achievement':
+                this.playTone(1500, 0.12);
+                setTimeout(() => this.playTone(1800, 0.12), 120);
+                break;
+            case 'keypress':
+                this.playTone(500, 0.02);
+                break;
+        }
+    }
+    
+    playTone(freq, duration) {
+        if (!this.context) return;
+        const ctx = this.context;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(this.volume, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+    }
+    
+    setEnabled(enabled) {
+        this.enabled = enabled;
+    }
+}
+
 // ==================== GAME STATE ====================
 class GameState {
     constructor() {
@@ -298,7 +369,8 @@ class GameState {
             puzzlesSolved: 0,
             puzzlesFailed: 0,
             terminalCommandsUsed: 0,
-            networkNodesAnalyzed: 0
+            networkNodesAnalyzed: 0,
+            dailyContractsCompleted: 0
         };
         this.activeEvents = [];
         this.eventHistory = [];
@@ -325,6 +397,7 @@ class GameState {
             currentScreen: 'dashboard',
             debugCommands: []
         };
+        this.dailyRefreshTime = 24 * 60 * 60 * 1000; // 24 часа
     }
     
     calculateXPToNext(level) {
@@ -354,7 +427,8 @@ class GameState {
             activityLog: this.activityLog,
             settings: this.settings,
             market: this.market,
-            system: this.system
+            system: this.system,
+            dailyRefreshTime: this.dailyRefreshTime
         });
     }
     
@@ -377,10 +451,12 @@ class Game {
     constructor() {
         this.state = new GameState();
         this.eventBus = new EventBus();
+        this.audio = new AudioSystem();
         this.isRunning = false;
         this.initialized = false;
         this.currentMission = null;
         this.terminalHistory = [];
+        this.miniGame = null; // текущая мини-игра
     }
     
     init() {
@@ -393,12 +469,13 @@ class Game {
         this.initialized = true;
         this.isRunning = true;
         
+        this.audio.init();
+        this.audio.setEnabled(this.state.settings.sound);
+        
         this.setupEventListeners();
         this.checkSaveAvailability();
         this.registerEventHandlers();
         this.applySettings();
-        
-        // Создаём начальный мир
         this.initializeWorld();
         
         this.eventBus.emit('GAME_INITIALIZED', { game: this });
@@ -406,33 +483,31 @@ class Game {
     }
     
     initializeWorld() {
-        // Заполняем сеть стартовыми узлами
         this.state.network.nodes = [
             { id: 'node_1', name: 'NODE-01', type: NODE_TYPES.SERVER, risk: 'LOW', status: 'active', security: 10, x: 30, y: 30 },
             { id: 'node_2', name: 'NODE-02', type: NODE_TYPES.ROUTER, risk: 'MEDIUM', status: 'active', security: 20, x: 60, y: 40 },
             { id: 'node_3', name: 'NODE-03', type: NODE_TYPES.DATABASE, risk: 'HIGH', status: 'active', security: 30, x: 50, y: 70 },
             { id: 'node_4', name: 'NODE-04', type: NODE_TYPES.WORKSTATION, risk: 'LOW', status: 'active', security: 15, x: 80, y: 20 },
-            { id: 'node_5', name: 'NODE-05', type: NODE_TYPES.CLOUD, risk: 'CRITICAL', status: 'active', security: 40, x: 40, y: 90 }
+            { id: 'node_5', name: 'NODE-05', type: NODE_TYPES.CLOUD, risk: 'CRITICAL', status: 'active', security: 40, x: 40, y: 90 },
+            { id: 'node_6', name: 'NODE-06', type: NODE_TYPES.FIREWALL, risk: 'MEDIUM', status: 'active', security: 25, x: 70, y: 60 },
+            { id: 'node_7', name: 'NODE-07', type: NODE_TYPES.SECURITY_NODE, risk: 'HIGH', status: 'active', security: 35, x: 20, y: 60 }
         ];
         
         this.state.network.connections = [
             { from: 'node_1', to: 'node_2' },
             { from: 'node_2', to: 'node_3' },
             { from: 'node_1', to: 'node_4' },
-            { from: 'node_3', to: 'node_5' }
+            { from: 'node_3', to: 'node_5' },
+            { from: 'node_4', to: 'node_6' },
+            { from: 'node_6', to: 'node_7' },
+            { from: 'node_7', to: 'node_1' }
         ];
         
-        // Добавляем первую миссию
         this.createStoryMissions();
-        
-        // Заполняем рынок предметами
         this.initializeMarket();
-        
-        // Добавляем NPC
         this.initializeNPCs();
-        
-        // Добавляем достижения
         this.initializeAchievements();
+        this.refreshDailyContracts();
     }
     
     createStoryMissions() {
@@ -467,7 +542,8 @@ class Game {
                     { id: 'obj_1', description: 'Connect to NODE-02', type: 'connect_node', target: 'node_2', completed: false },
                     { id: 'obj_2', description: 'Find ghost process', type: 'solve_puzzle', puzzle: 'log_analysis', completed: false },
                     { id: 'obj_3', description: 'Trace origin', type: 'trace_origin', completed: false }
-                ]
+                ],
+                storyFlag: 'ghost_intro'
             },
             {
                 id: 'mission_3',
@@ -481,7 +557,151 @@ class Game {
                 objectives: [
                     { id: 'obj_1', description: 'Decrypt message', type: 'solve_puzzle', puzzle: 'crypto', completed: false },
                     { id: 'obj_2', description: 'Find evidence', type: 'find_evidence', completed: false }
-                ]
+                ],
+                storyFlag: 'dead_drop'
+            },
+            {
+                id: 'mission_4',
+                title: 'BLACK SIGNAL',
+                description: 'An encrypted signal is being broadcast from NODE-03. Decode it and report.',
+                difficulty: MISSION_DIFFICULTIES.MEDIUM,
+                reward: 350,
+                xp: 120,
+                risk: RISK_LEVELS.HIGH,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Connect to NODE-03', type: 'connect_node', target: 'node_3', completed: false },
+                    { id: 'obj_2', description: 'Decode signal', type: 'solve_puzzle', puzzle: 'crypto', completed: false },
+                    { id: 'obj_3', description: 'Report threat', type: 'complete_report', completed: false }
+                ],
+                storyFlag: 'black_signal'
+            },
+            {
+                id: 'mission_5',
+                title: 'SILENT SERVER',
+                description: 'A server on NODE-04 has gone silent. Investigate the cause.',
+                difficulty: MISSION_DIFFICULTIES.MEDIUM,
+                reward: 400,
+                xp: 150,
+                risk: RISK_LEVELS.HIGH,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Inspect NODE-04', type: 'inspect_node', target: 'node_4', completed: false },
+                    { id: 'obj_2', description: 'Analyze server logs', type: 'analyze_log', target: 'node_4', completed: false },
+                    { id: 'obj_3', description: 'Find evidence', type: 'find_evidence', completed: false }
+                ],
+                storyFlag: 'silent_server'
+            },
+            {
+                id: 'mission_6',
+                title: 'COLD STORAGE',
+                description: 'Data from a cold storage backup has been corrupted. Recover it.',
+                difficulty: MISSION_DIFFICULTIES.HARD,
+                reward: 500,
+                xp: 200,
+                risk: RISK_LEVELS.HIGH,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Decrypt backup', type: 'solve_puzzle', puzzle: 'file_analysis', completed: false },
+                    { id: 'obj_2', description: 'Recover data', type: 'complete_report', completed: false }
+                ],
+                storyFlag: 'cold_storage'
+            },
+            {
+                id: 'mission_7',
+                title: 'RED LEDGER',
+                description: 'A financial database on NODE-05 shows anomalies. Trace the transactions.',
+                difficulty: MISSION_DIFFICULTIES.HARD,
+                reward: 600,
+                xp: 250,
+                risk: RISK_LEVELS.HIGH,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Connect to NODE-05', type: 'connect_node', target: 'node_5', completed: false },
+                    { id: 'obj_2', description: 'Analyze transactions', type: 'analyze_log', target: 'node_5', completed: false },
+                    { id: 'obj_3', description: 'Trace funds', type: 'trace_origin', completed: false }
+                ],
+                storyFlag: 'red_ledger'
+            },
+            {
+                id: 'mission_8',
+                title: 'ZERO DAY',
+                description: 'A zero-day exploit is being used. Identify the vulnerability and patch it.',
+                difficulty: MISSION_DIFFICULTIES.EXPERT,
+                reward: 1000,
+                xp: 500,
+                risk: RISK_LEVELS.CRITICAL,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Analyze exploit signature', type: 'solve_puzzle', puzzle: 'memory_forensics', completed: false },
+                    { id: 'obj_2', description: 'Find vulnerability', type: 'find_evidence', completed: false },
+                    { id: 'obj_3', description: 'Write report', type: 'complete_report', completed: false }
+                ],
+                storyFlag: 'zero_day'
+            },
+            {
+                id: 'mission_9',
+                title: 'PHANTOM PROCESS',
+                description: 'A process that should not exist is running on multiple nodes.',
+                difficulty: MISSION_DIFFICULTIES.HARD,
+                reward: 700,
+                xp: 300,
+                risk: RISK_LEVELS.HIGH,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Scan network', type: 'scan_network', completed: false },
+                    { id: 'obj_2', description: 'Find phantom process', type: 'solve_puzzle', puzzle: 'memory_forensics', completed: false },
+                    { id: 'obj_3', description: 'Kill process', type: 'trace_origin', completed: false }
+                ],
+                storyFlag: 'phantom'
+            },
+            {
+                id: 'mission_10',
+                title: 'NIGHT SHIFT',
+                description: 'Unusual activity during night hours. Find out who is accessing the network.',
+                difficulty: MISSION_DIFFICULTIES.MEDIUM,
+                reward: 450,
+                xp: 180,
+                risk: RISK_LEVELS.MEDIUM,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Analyze access logs', type: 'analyze_log', target: 'node_1', completed: false },
+                    { id: 'obj_2', description: 'Trace suspicious IP', type: 'trace_origin', completed: false },
+                    { id: 'obj_3', description: 'Report findings', type: 'complete_report', completed: false }
+                ],
+                storyFlag: 'night_shift'
+            },
+            {
+                id: 'mission_11',
+                title: 'FALSE POSITIVE',
+                description: 'An alert has triggered, but it might be a false positive. Verify.',
+                difficulty: MISSION_DIFFICULTIES.EASY,
+                reward: 250,
+                xp: 80,
+                risk: RISK_LEVELS.LOW,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Inspect alert', type: 'inspect_node', target: 'node_2', completed: false },
+                    { id: 'obj_2', description: 'Analyze logs', type: 'analyze_log', target: 'node_2', completed: false },
+                    { id: 'obj_3', description: 'Write report', type: 'complete_report', completed: false }
+                ],
+                storyFlag: 'false_positive'
+            },
+            {
+                id: 'mission_12',
+                title: 'BROKEN CHAIN',
+                description: 'A blockchain transaction is broken. Find the invalid block.',
+                difficulty: MISSION_DIFFICULTIES.HARD,
+                reward: 800,
+                xp: 350,
+                risk: RISK_LEVELS.HIGH,
+                status: 'available',
+                objectives: [
+                    { id: 'obj_1', description: 'Analyze block data', type: 'solve_puzzle', puzzle: 'file_analysis', completed: false },
+                    { id: 'obj_2', description: 'Find invalid block', type: 'find_evidence', completed: false },
+                    { id: 'obj_3', description: 'Report', type: 'complete_report', completed: false }
+                ],
+                storyFlag: 'broken_chain'
             }
         ];
         
@@ -495,7 +715,9 @@ class Game {
             { id: 'ssd_mid', name: 'Mid SSD', category: 'hardware', price: 250, description: 'Faster storage', effect: { type: 'ssd', performance: 20 }, rarity: RARITIES.COMMON },
             { id: 'tool_scanner', name: 'Advanced Scanner', category: 'tools', price: 400, description: 'Better network scanning', effect: { type: 'tool' }, rarity: RARITIES.UNCOMMON },
             { id: 'software_firewall', name: 'Firewall Bypass', category: 'software', price: 500, description: 'Helps bypass firewalls', effect: { type: 'software' }, rarity: RARITIES.UNCOMMON },
-            { id: 'intel_report', name: 'Intel Report', category: 'intel', price: 150, description: 'Contains useful information', effect: { type: 'intel' }, rarity: RARITIES.COMMON }
+            { id: 'intel_report', name: 'Intel Report', category: 'intel', price: 150, description: 'Contains useful information', effect: { type: 'intel' }, rarity: RARITIES.COMMON },
+            { id: 'gpu_mid', name: 'Mid GPU', category: 'hardware', price: 350, description: 'Better graphics for visualizations', effect: { type: 'gpu', performance: 20 }, rarity: RARITIES.COMMON },
+            { id: 'sec_mid', name: 'Security Upgrade', category: 'hardware', price: 450, description: 'Better security module', effect: { type: 'security', performance: 20 }, rarity: RARITIES.UNCOMMON }
         ];
         this.state.market.items = items;
         items.forEach(item => {
@@ -505,12 +727,60 @@ class Game {
     
     initializeNPCs() {
         this.state.relationships = {
-            MAYA: { name: 'MAYA', role: 'Fixer', trust: 20, dialogues: [], flags: {} },
-            RAVEN: { name: 'RAVEN', role: 'Hacker', trust: 10, dialogues: [], flags: {} },
-            NEX: { name: 'NEX', role: 'Broker', trust: 15, dialogues: [], flags: {} },
-            WARDEN: { name: 'WARDEN', role: 'Security', trust: 5, dialogues: [], flags: {} },
-            GHOST: { name: 'GHOST', role: 'Mysterious', trust: 0, dialogues: [], flags: {} }
+            MAYA: { name: 'MAYA', role: 'Fixer', trust: 20, dialogues: this.getDialogues('MAYA'), flags: {} },
+            RAVEN: { name: 'RAVEN', role: 'Hacker', trust: 10, dialogues: this.getDialogues('RAVEN'), flags: {} },
+            NEX: { name: 'NEX', role: 'Broker', trust: 15, dialogues: this.getDialogues('NEX'), flags: {} },
+            WARDEN: { name: 'WARDEN', role: 'Security', trust: 5, dialogues: this.getDialogues('WARDEN'), flags: {} },
+            GHOST: { name: 'GHOST', role: 'Mysterious', trust: 0, dialogues: this.getDialogues('GHOST'), flags: {} }
         };
+    }
+    
+    getDialogues(npcId) {
+        // База диалогов для каждого NPC
+        switch(npcId) {
+            case 'MAYA':
+                return [
+                    { text: "Welcome, operator. I'm MAYA. I can get you contracts. Need anything?", responses: [
+                        { text: "What kind of contracts?", action: (game) => { game.addActivityLog('NPC', 'Asked MAYA about contracts'); game.addNotification('MAYA: I deal in corporate espionage and data retrieval.', 'info'); } },
+                        { text: "Who are you exactly?", action: (game) => { game.addActivityLog('NPC', 'Asked MAYA about herself'); game.addNotification('MAYA: I am a fixer. I connect people who need things with people who can get them.', 'info'); } },
+                        { text: "Goodbye.", action: null }
+                    ]},
+                    { text: "You need better equipment. Check the market.", responses: [
+                        { text: "Okay.", action: null },
+                        { text: "Can you give me a discount?", action: (game) => { game.addNotification('MAYA: Maybe if you prove yourself.', 'info'); } }
+                    ]}
+                ];
+            case 'RAVEN':
+                return [
+                    { text: "Hey. I'm Raven. I know the dark web. You need something?", responses: [
+                        { text: "Tell me about the Ghost.", action: (game) => { game.addNotification('RAVEN: Ghost is a legend. No one knows who they are.', 'info'); } },
+                        { text: "Goodbye.", action: null }
+                    ]}
+                ];
+            case 'NEX':
+                return [
+                    { text: "Greetings. I am NEX, a broker of information. Buy or sell?", responses: [
+                        { text: "Buy information.", action: (game) => { game.addNotification('NEX: Come back when you have credits.', 'info'); } },
+                        { text: "Sell information.", action: (game) => { game.addNotification('NEX: Bring me evidence.', 'info'); } }
+                    ]}
+                ];
+            case 'WARDEN':
+                return [
+                    { text: "I am WARDEN. Security specialist. Stay out of trouble.", responses: [
+                        { text: "I need help with a case.", action: (game) => { game.addNotification('WARDEN: Provide details.', 'info'); } },
+                        { text: "Goodbye.", action: null }
+                    ]}
+                ];
+            case 'GHOST':
+                return [
+                    { text: "...", responses: [
+                        { text: "Who are you?", action: (game) => { game.addNotification('GHOST: ...', 'info'); } },
+                        { text: "I found your trace.", action: (game) => { game.addNotification('GHOST: You are getting closer.', 'info'); } }
+                    ]}
+                ];
+            default:
+                return [];
+        }
     }
     
     initializeAchievements() {
@@ -524,12 +794,63 @@ class Game {
             { id: 'ach_no_trace', name: 'NO TRACE', description: 'Complete a mission with low heat', condition: () => this.state.player.heat < 20 && this.state.statistics.successfulMissions >= 1, unlocked: false },
             { id: 'ach_zero_day', name: 'ZERO DAY', description: 'Reach story flag zero_day', condition: () => this.state.story.flags.zero_day, unlocked: false },
             { id: 'ach_perfect_report', name: 'PERFECT REPORT', description: 'Get grade S in a report', condition: () => this.state.forensics.reports.some(r => r.grade === 'S'), unlocked: false },
-            { id: 'ach_night_owl', name: 'NIGHT OWL', description: 'Play for 1 hour', condition: () => this.state.statistics.playTime >= 3600, unlocked: false }
+            { id: 'ach_night_owl', name: 'NIGHT OWL', description: 'Play for 1 hour', condition: () => this.state.statistics.playTime >= 3600, unlocked: false },
+            { id: 'ach_puzzle_master', name: 'PUZZLE MASTER', description: 'Solve 10 puzzles', condition: () => this.state.statistics.puzzlesSolved >= 10, unlocked: false },
+            { id: 'ach_rich', name: 'RICH', description: 'Earn 10000 credits total', condition: () => this.state.statistics.moneyEarned >= 10000, unlocked: false }
         ];
         
         achievements.forEach(ach => {
             this.state.achievements[ach.id] = ach;
         });
+    }
+    
+    refreshDailyContracts() {
+        const now = Date.now();
+        const lastRefresh = this.state.missions.lastDailyRefresh;
+        if (lastRefresh && (now - lastRefresh) < this.state.dailyRefreshTime) {
+            return; // не обновляем, если не прошло 24 часа
+        }
+        
+        this.state.missions.lastDailyRefresh = now;
+        this.state.missions.dailyContracts = this.generateDailyContracts();
+        this.addNotification('New daily contracts available!', 'system');
+    }
+    
+    generateDailyContracts() {
+        const templates = [
+            { title: 'Network Anomaly', desc: 'Find anomaly in node', difficulty: MISSION_DIFFICULTIES.EASY, reward: 100, xp: 30, risk: RISK_LEVELS.LOW },
+            { title: 'Log Analysis', desc: 'Analyze access logs', difficulty: MISSION_DIFFICULTIES.EASY, reward: 120, xp: 40, risk: RISK_LEVELS.LOW },
+            { title: 'Packet Trace', desc: 'Trace suspicious packets', difficulty: MISSION_DIFFICULTIES.MEDIUM, reward: 200, xp: 60, risk: RISK_LEVELS.MEDIUM },
+            { title: 'Malware Scan', desc: 'Scan for malware', difficulty: MISSION_DIFFICULTIES.MEDIUM, reward: 250, xp: 80, risk: RISK_LEVELS.MEDIUM },
+            { title: 'Cryptography', desc: 'Decrypt a file', difficulty: MISSION_DIFFICULTIES.HARD, reward: 400, xp: 120, risk: RISK_LEVELS.HIGH },
+            { title: 'Forensics', desc: 'Examine digital evidence', difficulty: MISSION_DIFFICULTIES.HARD, reward: 450, xp: 150, risk: RISK_LEVELS.HIGH }
+        ];
+        
+        const contracts = [];
+        for (let i = 0; i < 3; i++) {
+            const template = templates[Math.floor(Math.random() * templates.length)];
+            const contract = {
+                id: generateId('contract'),
+                title: `${template.title} (Daily)`,
+                description: template.desc,
+                difficulty: template.difficulty,
+                reward: template.reward + Math.floor(Math.random() * 50),
+                xp: template.xp,
+                risk: template.risk,
+                status: 'available',
+                objectives: [
+                    { id: generateId('obj'), description: 'Complete task', type: 'solve_puzzle', puzzle: this.getRandomPuzzleType(), completed: false },
+                    { id: generateId('obj'), description: 'Report', type: 'complete_report', completed: false }
+                ]
+            };
+            contracts.push(contract);
+        }
+        return contracts;
+    }
+    
+    getRandomPuzzleType() {
+        const types = ['port_puzzle', 'hash_puzzle', 'log_analysis', 'packet_analysis', 'crypto', 'memory_forensics', 'file_analysis', 'network_topology'];
+        return types[Math.floor(Math.random() * types.length)];
     }
     
     setupEventListeners() {
@@ -554,6 +875,7 @@ class Game {
             if (e.key === 'Enter') {
                 const command = e.target.value.trim();
                 if (command) {
+                    this.audio.play('keypress');
                     this.executeTerminalCommand(command);
                     e.target.value = '';
                 }
@@ -567,15 +889,19 @@ class Game {
             if (this.state.system.currentScreen === 'dashboard') this.renderDashboard();
         });
         this.eventBus.on('EVENT_MISSION_COMPLETE', (payload) => {
+            this.audio.play('mission');
             this.addNotification(`MISSION COMPLETE: ${payload.mission.title}\n+${payload.mission.reward} Credits, +${payload.mission.xp} XP`, 'mission');
         });
         this.eventBus.on('EVENT_LEVEL_UP', (payload) => {
+            this.audio.play('success');
             this.addNotification(`LEVEL UP! You are now level ${payload.level}`, 'success');
         });
         this.eventBus.on('EVENT_ITEM_PURCHASE', (payload) => {
+            this.audio.play('success');
             this.addNotification(`Purchased: ${payload.item.name}`, 'success');
         });
         this.eventBus.on('EVENT_ITEM_SOLD', (payload) => {
+            this.audio.play('click');
             this.addNotification(`Sold: ${payload.item.name}`, 'info');
         });
     }
@@ -659,6 +985,8 @@ class Game {
         this.eventBus.emit('GAME_STARTED', { game: this });
         this.applySettings();
         this.saveGame(true);
+        this.refreshDailyContracts();
+        this.audio.play('notification');
     }
     
     navigateToScreen(screenName) {
@@ -718,6 +1046,7 @@ class Game {
             el.style.transition = 'opacity 0.3s';
             setTimeout(() => el.remove(), 300);
         }, duration);
+        this.audio.play('notification');
     }
     
     addActivityLog(type, message) {
@@ -732,6 +1061,7 @@ class Game {
         if (terminalWindow) terminalWindow.style.fontSize = this.state.settings.terminalFontSize + 'px';
         const input = document.getElementById('terminal-input');
         if (input) input.style.fontSize = this.state.settings.terminalFontSize + 'px';
+        this.audio.setEnabled(this.state.settings.sound);
     }
     
     // ==================== РЕНДЕРИНГ ====================
@@ -810,7 +1140,13 @@ class Game {
         const container = document.getElementById('missions-container');
         if (!container) return;
         
-        const list = this.state.missions[tab] || [];
+        let list = [];
+        if (tab === 'available') {
+            list = [...this.state.missions.available, ...this.state.missions.dailyContracts];
+        } else {
+            list = this.state.missions[tab] || [];
+        }
+        
         if (list.length === 0) {
             container.innerHTML = '<p>No missions in this category.</p>';
             return;
@@ -824,6 +1160,7 @@ class Game {
                     <span>Difficulty: ${mission.difficulty}</span>
                     <span>Reward: ${mission.reward} Cr</span>
                     <span>Risk: ${mission.risk}</span>
+                    ${tab === 'available' && this.state.missions.dailyContracts.includes(mission) ? '<span style="color:var(--yellow)">DAILY</span>' : ''}
                 </div>
             </div>
         `).join('');
@@ -832,7 +1169,6 @@ class Game {
             card.addEventListener('click', () => this.showMissionDetails(card.getAttribute('data-id')));
         });
         
-        // Обработчики вкладок
         document.querySelectorAll('.missions-tabs .tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.missions-tabs .tab-btn').forEach(b => b.classList.remove('active'));
@@ -851,18 +1187,23 @@ class Game {
             return;
         }
         
-        // Рисуем соединения и узлы
         let html = '';
         this.state.network.connections.forEach(conn => {
             const from = this.state.network.nodes.find(n => n.id === conn.from);
             const to = this.state.network.nodes.find(n => n.id === conn.to);
             if (from && to) {
-                html += `<div style="position:absolute; left:${from.x}%; top:${from.y}%; width:${Math.abs(to.x - from.x)}%; height:1px; background:var(--border); transform-origin: left center; transform: rotate(${Math.atan2(to.y - from.y, to.x - from.x)}rad);"></div>`;
+                const dx = to.x - from.x;
+                const dy = to.y - from.y;
+                const length = Math.sqrt(dx*dx + dy*dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                html += `<div class="network-line" style="position:absolute; left:${from.x}%; top:${from.y}%; width:${length}%; height:1px; background:var(--border); transform-origin: left center; transform: rotate(${angle}deg);"></div>`;
             }
         });
         
         this.state.network.nodes.forEach(node => {
-            html += `<div style="position:absolute; left:${node.x}%; top:${node.y}%; width:12px; height:12px; background:var(--cyan); border-radius:50%; cursor:pointer; transform: translate(-50%, -50%);" title="${node.name} (${node.type})" data-node-id="${node.id}"></div>`;
+            const analyzed = this.state.network.analyzedNodes.includes(node.id);
+            const color = analyzed ? 'var(--green)' : 'var(--cyan)';
+            html += `<div class="network-node" style="position:absolute; left:${node.x}%; top:${node.y}%; width:14px; height:14px; background:${color}; border-radius:50%; cursor:pointer; transform: translate(-50%, -50%); box-shadow: 0 0 10px ${color}; animation: pulse 2s infinite;" title="${node.name} (${node.type})" data-node-id="${node.id}"></div>`;
         });
         
         map.innerHTML = html;
@@ -885,10 +1226,10 @@ class Game {
                 <p>Risk: ${node.risk}</p>
                 <p>Status: ${node.status}</p>
                 <button id="btn-inspect-node" class="btn-primary">INSPECT</button>
+                <button id="btn-connect-node" class="btn-secondary">CONNECT</button>
             `;
-            document.getElementById('btn-inspect-node').addEventListener('click', () => {
-                this.inspectNode(node.id);
-            });
+            document.getElementById('btn-inspect-node').addEventListener('click', () => this.inspectNode(node.id));
+            document.getElementById('btn-connect-node').addEventListener('click', () => this.terminalConnect([node.id]));
         }
     }
     
@@ -896,14 +1237,11 @@ class Game {
         const node = this.state.network.nodes.find(n => n.id === nodeId);
         if (!node) return;
         
-        // Отмечаем узел как проанализированный
         if (!this.state.network.analyzedNodes.includes(nodeId)) {
             this.state.network.analyzedNodes.push(nodeId);
             this.state.statistics.networkNodesAnalyzed++;
             this.addActivityLog('NETWORK', `Inspected ${node.name}`);
             this.addNotification(`Node ${node.name} analyzed`, 'success');
-            
-            // Проверяем цели миссий
             this.checkMissionObjective('inspect_node', nodeId);
         }
     }
@@ -995,6 +1333,7 @@ class Game {
         if (!item) return;
         
         if (this.state.player.credits < item.price) {
+            this.audio.play('error');
             this.addNotification('Not enough credits', 'error');
             return;
         }
@@ -1002,7 +1341,6 @@ class Game {
         this.state.player.credits -= item.price;
         this.state.statistics.moneySpent += item.price;
         
-        // Применяем эффект предмета, если это оборудование
         if (item.effect && item.effect.type && this.state.hardware[item.effect.type]) {
             this.state.hardware[item.effect.type] = {
                 id: item.id,
@@ -1012,13 +1350,9 @@ class Game {
                 price: item.price
             };
         } else {
-            // Добавляем в инвентарь
             const existing = this.state.inventory.find(i => i.id === item.id);
-            if (existing) {
-                existing.quantity++;
-            } else {
-                this.state.inventory.push({ ...item, quantity: 1 });
-            }
+            if (existing) existing.quantity++;
+            else this.state.inventory.push({ ...item, quantity: 1 });
         }
         
         this.eventBus.emit('EVENT_ITEM_PURCHASE', { item });
@@ -1115,7 +1449,9 @@ class Game {
                 { label: 'Play Time (s)', value: s.playTime },
                 { label: 'Challenges', value: s.challengesCompleted },
                 { label: 'Evidence Found', value: s.evidenceFound },
-                { label: 'Reports', value: s.reportsCompleted }
+                { label: 'Reports', value: s.reportsCompleted },
+                { label: 'Puzzles Solved', value: s.puzzlesSolved },
+                { label: 'Daily Contracts', value: s.dailyContractsCompleted }
             ];
             container.innerHTML = items.map(item => `
                 <div class="stat-box">
@@ -1219,7 +1555,7 @@ class Game {
     }
     
     showMissionDetails(missionId) {
-        const allMissions = [...this.state.missions.available, ...this.state.missions.active, ...this.state.missions.completed, ...this.state.missions.failed];
+        const allMissions = [...this.state.missions.available, ...this.state.missions.active, ...this.state.missions.completed, ...this.state.missions.failed, ...this.state.missions.dailyContracts];
         const mission = allMissions.find(m => m.id === missionId);
         if (!mission) return;
         
@@ -1234,7 +1570,8 @@ class Game {
         `;
         
         const buttons = [];
-        if (this.state.missions.available.includes(mission)) {
+        const isAvailable = this.state.missions.available.includes(mission) || this.state.missions.dailyContracts.includes(mission);
+        if (isAvailable) {
             buttons.push({
                 id: 'btn-accept-mission',
                 label: 'ACCEPT MISSION',
@@ -1253,10 +1590,14 @@ class Game {
     }
     
     acceptMission(missionId) {
-        const mission = this.state.missions.available.find(m => m.id === missionId);
+        let mission = this.state.missions.available.find(m => m.id === missionId);
+        if (!mission) mission = this.state.missions.dailyContracts.find(m => m.id === missionId);
         if (!mission) return;
         
+        // Удаляем из соответствующего массива
         this.state.missions.available = this.state.missions.available.filter(m => m.id !== missionId);
+        this.state.missions.dailyContracts = this.state.missions.dailyContracts.filter(m => m.id !== missionId);
+        
         mission.status = 'active';
         this.state.missions.active.push(mission);
         this.currentMission = mission;
@@ -1324,6 +1665,11 @@ class Game {
             this.state.story.progress++;
         }
         
+        // Если это ежедневный контракт, увеличиваем счётчик
+        if (mission.title.includes('Daily')) {
+            this.state.statistics.dailyContractsCompleted++;
+        }
+        
         this.eventBus.emit('EVENT_MISSION_COMPLETE', { mission });
         this.checkLevelUp();
         this.checkAchievements();
@@ -1347,9 +1693,310 @@ class Game {
         Object.values(this.state.achievements).forEach(ach => {
             if (!ach.unlocked && ach.condition()) {
                 ach.unlocked = true;
+                this.audio.play('achievement');
                 this.addNotification(`ACHIEVEMENT UNLOCKED: ${ach.name}`, 'achievement');
                 this.addActivityLog('ACHIEVEMENT', `Unlocked: ${ach.name}`);
             }
+        });
+    }
+    
+    // ==================== МИНИ-ИГРЫ ====================
+    startMiniGame(puzzleType) {
+        this.audio.play('click');
+        switch (puzzleType) {
+            case 'port_puzzle': this.startPortPuzzle(); break;
+            case 'hash_puzzle': this.startHashPuzzle(); break;
+            case 'log_analysis': this.startLogAnalysis(); break;
+            case 'packet_analysis': this.startPacketAnalysis(); break;
+            case 'crypto': this.startCryptoPuzzle(); break;
+            case 'memory_forensics': this.startMemoryForensics(); break;
+            case 'file_analysis': this.startFileAnalysis(); break;
+            case 'network_topology': this.startNetworkTopology(); break;
+            default: this.addNotification('Unknown puzzle type', 'error');
+        }
+    }
+    
+    startPortPuzzle() {
+        const ports = [80, 443, 22, 21, 8080, 3306];
+        const targetPort = ports[Math.floor(Math.random() * ports.length)];
+        const content = `
+            <p>Find the open port. Scan the target system.</p>
+            <p>Target: 192.168.1.100</p>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
+                ${ports.map(p => `<button class="port-btn btn-secondary" data-port="${p}">Port ${p}</button>`).join('')}
+            </div>
+        `;
+        this.showModal('PORT PUZZLE', content, [
+            { id: 'btn-cancel', label: 'Cancel', class: 'btn-secondary', onClick: () => this.hideModal() }
+        ]);
+        
+        document.querySelectorAll('.port-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const selectedPort = parseInt(btn.getAttribute('data-port'));
+                if (selectedPort === targetPort) {
+                    this.audio.play('success');
+                    this.addNotification('Puzzle solved!', 'success');
+                    this.state.statistics.puzzlesSolved++;
+                    this.checkMissionObjective('solve_puzzle', 'port_puzzle');
+                    this.hideModal();
+                } else {
+                    this.audio.play('error');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                }
+            });
+        });
+    }
+    
+    startHashPuzzle() {
+        const words = ['apple', 'banana', 'cherry', 'date', 'elderberry'];
+        const targetWord = words[Math.floor(Math.random() * words.length)];
+        const targetHash = generateFakeHash(targetWord).substring(0, 8);
+        const content = `
+            <p>Match the hash: <strong>${targetHash}</strong></p>
+            <p>Which word produces this hash?</p>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;">
+                ${words.map(w => `<button class="hash-btn btn-secondary" data-word="${w}">${w}</button>`).join('')}
+            </div>
+        `;
+        this.showModal('HASH PUZZLE', content, [
+            { id: 'btn-cancel', label: 'Cancel', class: 'btn-secondary', onClick: () => this.hideModal() }
+        ]);
+        
+        document.querySelectorAll('.hash-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const selectedWord = btn.getAttribute('data-word');
+                if (selectedWord === targetWord) {
+                    this.audio.play('success');
+                    this.addNotification('Puzzle solved!', 'success');
+                    this.state.statistics.puzzlesSolved++;
+                    this.checkMissionObjective('solve_puzzle', 'hash_puzzle');
+                    this.hideModal();
+                } else {
+                    this.audio.play('error');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                }
+            });
+        });
+    }
+    
+    startLogAnalysis() {
+        // Простая игра: найти аномальную запись среди списка
+        const logs = [
+            { text: 'Login successful from 192.168.1.5', normal: true },
+            { text: 'Login failed from 10.0.0.3', normal: true },
+            { text: 'Access granted to file.txt', normal: true },
+            { text: 'Unusual process started: "ghost.exe"', normal: false },
+            { text: 'Logout from 192.168.1.7', normal: true }
+        ];
+        const shuffled = [...logs].sort(() => Math.random() - 0.5);
+        const content = `
+            <p>Find the anomalous log entry.</p>
+            <div style="margin-top:10px;">
+                ${shuffled.map((log, index) => `<button class="log-btn btn-secondary" data-index="${index}">${log.text}</button>`).join('')}
+            </div>
+        `;
+        this.showModal('LOG ANALYSIS', content, [
+            { id: 'btn-cancel', label: 'Cancel', class: 'btn-secondary', onClick: () => this.hideModal() }
+        ]);
+        
+        document.querySelectorAll('.log-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.getAttribute('data-index'));
+                if (!shuffled[index].normal) {
+                    this.audio.play('success');
+                    this.addNotification('Anomaly found!', 'success');
+                    this.state.statistics.puzzlesSolved++;
+                    this.checkMissionObjective('solve_puzzle', 'log_analysis');
+                    this.hideModal();
+                } else {
+                    this.audio.play('error');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                }
+            });
+        });
+    }
+    
+    startPacketAnalysis() {
+        const packets = [
+            { src: '192.168.1.2', dst: '8.8.8.8', proto: 'TCP', suspicious: false },
+            { src: '192.168.1.3', dst: '10.0.0.1', proto: 'UDP', suspicious: false },
+            { src: '10.0.0.99', dst: '192.168.1.100', proto: 'ICMP', suspicious: true },
+            { src: '192.168.1.4', dst: '172.16.0.5', proto: 'TCP', suspicious: false }
+        ];
+        const shuffled = [...packets].sort(() => Math.random() - 0.5);
+        const content = `
+            <p>Which packet is suspicious?</p>
+            <div style="margin-top:10px;">
+                ${shuffled.map((p, index) => `<button class="packet-btn btn-secondary" data-index="${index}">${p.src} -> ${p.dst} [${p.proto}]</button>`).join('')}
+            </div>
+        `;
+        this.showModal('PACKET ANALYSIS', content, [
+            { id: 'btn-cancel', label: 'Cancel', class: 'btn-secondary', onClick: () => this.hideModal() }
+        ]);
+        
+        document.querySelectorAll('.packet-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.getAttribute('data-index'));
+                if (shuffled[index].suspicious) {
+                    this.audio.play('success');
+                    this.addNotification('Suspicious packet found!', 'success');
+                    this.state.statistics.puzzlesSolved++;
+                    this.checkMissionObjective('solve_puzzle', 'packet_analysis');
+                    this.hideModal();
+                } else {
+                    this.audio.play('error');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                }
+            });
+        });
+    }
+    
+    startCryptoPuzzle() {
+        // Простой сдвиг Цезаря
+        const plain = 'BLACKNET';
+        const shift = 3;
+        const cipher = plain.split('').map(ch => {
+            if (ch >= 'A' && ch <= 'Z') return String.fromCharCode(((ch.charCodeAt(0) - 65 + shift) % 26) + 65);
+            return ch;
+        }).join('');
+        const content = `
+            <p>Decrypt the following Caesar cipher (shift unknown):</p>
+            <p><strong>${cipher}</strong></p>
+            <p>Enter the plaintext:</p>
+            <input type="text" id="crypto-input" style="width:100%; padding:5px; background:var(--bg-glass); border:1px solid var(--border); color:var(--text-primary); font-family:var(--font-mono);" />
+        `;
+        this.showModal('CRYPTO PUZZLE', content, [
+            { id: 'btn-check', label: 'Check', class: 'btn-primary', onClick: () => {
+                const input = document.getElementById('crypto-input').value.trim().toUpperCase();
+                if (input === plain) {
+                    this.audio.play('success');
+                    this.addNotification('Decrypted!', 'success');
+                    this.state.statistics.puzzlesSolved++;
+                    this.checkMissionObjective('solve_puzzle', 'crypto');
+                    this.hideModal();
+                } else {
+                    this.audio.play('error');
+                    this.addNotification('Wrong answer', 'error');
+                }
+            }},
+            { id: 'btn-cancel', label: 'Cancel', class: 'btn-secondary', onClick: () => this.hideModal() }
+        ]);
+    }
+    
+    startMemoryForensics() {
+        const processes = [
+            { name: 'chrome.exe', normal: true },
+            { name: 'explorer.exe', normal: true },
+            { name: 'system.exe', normal: true },
+            { name: 'malware.bin', normal: false },
+            { name: 'svchost.exe', normal: true }
+        ];
+        const shuffled = [...processes].sort(() => Math.random() - 0.5);
+        const content = `
+            <p>Find the malicious process in memory dump.</p>
+            <div style="margin-top:10px;">
+                ${shuffled.map((p, index) => `<button class="proc-btn btn-secondary" data-index="${index}">${p.name}</button>`).join('')}
+            </div>
+        `;
+        this.showModal('MEMORY FORENSICS', content, [
+            { id: 'btn-cancel', label: 'Cancel', class: 'btn-secondary', onClick: () => this.hideModal() }
+        ]);
+        
+        document.querySelectorAll('.proc-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.getAttribute('data-index'));
+                if (!shuffled[index].normal) {
+                    this.audio.play('success');
+                    this.addNotification('Malicious process found!', 'success');
+                    this.state.statistics.puzzlesSolved++;
+                    this.checkMissionObjective('solve_puzzle', 'memory_forensics');
+                    this.hideModal();
+                } else {
+                    this.audio.play('error');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                }
+            });
+        });
+    }
+    
+    startFileAnalysis() {
+        const files = [
+            { name: 'report.doc', normal: true },
+            { name: 'image.jpg', normal: true },
+            { name: 'data.exe', normal: false },
+            { name: 'notes.txt', normal: true },
+            { name: 'archive.zip', normal: true }
+        ];
+        const shuffled = [...files].sort(() => Math.random() - 0.5);
+        const content = `
+            <p>Which file is suspicious?</p>
+            <div style="margin-top:10px;">
+                ${shuffled.map((f, index) => `<button class="file-btn btn-secondary" data-index="${index}">${f.name}</button>`).join('')}
+            </div>
+        `;
+        this.showModal('FILE ANALYSIS', content, [
+            { id: 'btn-cancel', label: 'Cancel', class: 'btn-secondary', onClick: () => this.hideModal() }
+        ]);
+        
+        document.querySelectorAll('.file-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.getAttribute('data-index'));
+                if (!shuffled[index].normal) {
+                    this.audio.play('success');
+                    this.addNotification('Suspicious file found!', 'success');
+                    this.state.statistics.puzzlesSolved++;
+                    this.checkMissionObjective('solve_puzzle', 'file_analysis');
+                    this.hideModal();
+                } else {
+                    this.audio.play('error');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                }
+            });
+        });
+    }
+    
+    startNetworkTopology() {
+        // Просто выбор правильного пути
+        const paths = [
+            { from: 'A', to: 'B', valid: true },
+            { from: 'A', to: 'C', valid: false },
+            { from: 'B', to: 'D', valid: true },
+            { from: 'C', to: 'D', valid: false }
+        ];
+        const content = `
+            <p>Find the valid path from A to D.</p>
+            <div style="margin-top:10px;">
+                <button class="path-btn btn-secondary" data-path="AB">A -> B</button>
+                <button class="path-btn btn-secondary" data-path="AC">A -> C</button>
+                <button class="path-btn btn-secondary" data-path="BD">B -> D</button>
+                <button class="path-btn btn-secondary" data-path="CD">C -> D</button>
+            </div>
+        `;
+        this.showModal('NETWORK TOPOLOGY', content, [
+            { id: 'btn-cancel', label: 'Cancel', class: 'btn-secondary', onClick: () => this.hideModal() }
+        ]);
+        
+        document.querySelectorAll('.path-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const path = btn.getAttribute('data-path');
+                if (path === 'AB' || path === 'BD') {
+                    this.audio.play('success');
+                    this.addNotification('Correct path!', 'success');
+                    this.state.statistics.puzzlesSolved++;
+                    this.checkMissionObjective('solve_puzzle', 'network_topology');
+                    this.hideModal();
+                } else {
+                    this.audio.play('error');
+                    btn.disabled = true;
+                    btn.style.opacity = '0.5';
+                }
+            });
         });
     }
     
@@ -1395,6 +2042,8 @@ class Game {
             case 'vm': response = this.terminalVM(args); break;
             case 'evidence': response = this.terminalEvidence(); break;
             case 'report': response = this.terminalReport(); break;
+            case 'puzzle': response = this.terminalPuzzle(args); break;
+            case 'npc': response = this.terminalNPC(args); break;
             case 'debug': response = this.state.settings.debugMode ? this.terminalDebug(args) : 'Debug mode is disabled.'; break;
             case 'sudo':
             case 'su':
@@ -1441,6 +2090,8 @@ class Game {
   vm          - Manage virtual machines (vm list)
   evidence    - Show evidence
   report      - Generate report
+  puzzle      - Start a mini-game (usage: puzzle <type>)
+  npc         - Talk to NPC (usage: npc <name>)
   debug       - Debug commands (if enabled)`;
     }
     
@@ -1474,7 +2125,6 @@ ID: ${this.state.player.id}`;
     
     terminalScan(args) {
         if (args.length === 0 || args[0] !== 'network') return 'Usage: scan network';
-        // Находим новые узлы (упрощённо: просто уведомляем)
         this.addNotification('Network scan complete', 'success');
         this.state.statistics.networkNodesAnalyzed++;
         this.checkMissionObjective('scan_network');
@@ -1514,14 +2164,13 @@ Status: ${node.status || 'unknown'}`;
     
     terminalAnalyze(args) {
         if (args.length === 0) return 'Usage: analyze <object>';
-        // Имитация анализа
         this.checkMissionObjective('analyze_log', args[0]);
         return `Analyzing ${args[0]}... done. No anomalies found.`;
     }
     
     terminalDecrypt(args) {
         if (args.length === 0) return 'Usage: decrypt <file>';
-        return `Decrypting ${args[0]}... (use "solve puzzle" for decryption mini-game)`;
+        return `Decrypting ${args[0]}... (use "puzzle crypto" for decryption mini-game)`;
     }
     
     terminalHash(args) {
@@ -1592,17 +2241,50 @@ Uptime: ${Math.floor(this.state.player.playTime / 60)} min`;
     
     terminalReport() {
         if (!this.state.forensics.currentCase) return 'No active case to report.';
-        // Генерация отчёта
         const report = {
             id: generateId('report'),
             title: this.state.forensics.currentCase.title,
-            grade: 'A', // Упрощённо
+            grade: 'A',
             date: Date.now()
         };
         this.state.forensics.reports.push(report);
         this.state.statistics.reportsCompleted++;
         this.checkMissionObjective('complete_report');
         return `Report generated: ${report.title} — Grade ${report.grade}`;
+    }
+    
+    terminalPuzzle(args) {
+        if (args.length === 0) return 'Usage: puzzle <type> (types: port_puzzle, hash_puzzle, log_analysis, packet_analysis, crypto, memory_forensics, file_analysis, network_topology)';
+        const type = args[0];
+        this.startMiniGame(type);
+        return `Starting ${type}...`;
+    }
+    
+    terminalNPC(args) {
+        if (args.length === 0) return 'Usage: npc <name> (MAYA, RAVEN, NEX, WARDEN, GHOST)';
+        const npcName = args[0].toUpperCase();
+        const npc = this.state.relationships[npcName];
+        if (!npc) return `NPC ${npcName} not found.`;
+        // Показываем диалог
+        const dialogue = npc.dialogues[0]; // первая реплика
+        if (dialogue) {
+            const responses = dialogue.responses.map((r, i) => 
+                `<button class="npc-response btn-secondary" data-response="${i}" style="display:block; margin:5px 0; width:100%;">${r.text}</button>`
+            ).join('');
+            this.showModal(`${npc.name} (${npc.role})`, `<p>${dialogue.text}</p><div>${responses}</div>`, [
+                { id: 'btn-close-npc', label: 'Close', class: 'btn-secondary', onClick: () => this.hideModal() }
+            ]);
+            document.querySelectorAll('.npc-response').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.getAttribute('data-response'));
+                    const resp = dialogue.responses[idx];
+                    if (resp.action) resp.action(this);
+                    this.hideModal();
+                });
+            });
+            return 'Opening dialogue...';
+        }
+        return 'No dialogues available.';
     }
     
     terminalDebug(args) {
@@ -1638,6 +2320,11 @@ Uptime: ${Math.floor(this.state.player.playTime / 60)} min`;
             if (this.state.player.heat > this.state.statistics.highestHeat) {
                 this.state.statistics.highestHeat = this.state.player.heat;
             }
+        }
+        
+        // Проверяем ежедневные контракты раз в минуту (приблизительно)
+        if (this.state.system.bootSequenceComplete && Math.random() < 0.001) {
+            this.refreshDailyContracts();
         }
         
         requestAnimationFrame(() => this.update());
