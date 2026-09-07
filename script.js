@@ -4,7 +4,7 @@
 // =====================================================
 
 'use strict';
-console.log('SCRIPT LOADED OK');
+alert('Script is working!');
 // ==================== CONSTANTS ====================
 const GAME_VERSION = '0.1.0';
 const SAVE_VERSION = 1;
