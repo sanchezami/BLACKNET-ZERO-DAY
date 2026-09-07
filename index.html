@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -8,7 +8,7 @@
 </head>
 <body>
     <div id="app">
-        <!-- Start Screen -->
+        <!-- Экран загрузки -->
         <div id="start-screen" class="screen active">
             <div class="start-container">
                 <div class="game-title">
@@ -17,156 +17,100 @@
                     <p class="tagline">"Every system leaves a trace."</p>
                 </div>
                 <div class="start-buttons">
-                    <button id="btn-new-game" class="btn-primary">NEW GAME</button>
-                    <button id="btn-continue" class="btn-primary" disabled>CONTINUE</button>
-                    <button id="btn-settings" class="btn-secondary">SETTINGS</button>
+                    <button id="btn-new-game" class="btn-primary">НОВАЯ ИГРА</button>
+                    <button id="btn-continue" class="btn-primary" disabled>ПРОДОЛЖИТЬ</button>
+                    <button id="btn-settings" class="btn-secondary">НАСТРОЙКИ</button>
+                </div>
+                <div class="intro-text">
+                    <p>Добро пожаловать в BLACKNET.</p>
+                    <p>Ты начинающий аналитик цифровых расследований.</p>
+                    <p>Твоя задача — находить следы атак, анализировать данные и раскрывать тайны.</p>
                 </div>
             </div>
         </div>
 
-        <!-- Boot Screen -->
+        <!-- Экран загрузки (boot) -->
         <div id="boot-screen" class="screen">
             <div class="boot-container">
                 <div id="boot-log" class="boot-log"></div>
-                <button id="btn-enter-dashboard" class="btn-primary hidden">ENTER DASHBOARD</button>
+                <button id="btn-enter-dashboard" class="btn-primary hidden">ВОЙТИ</button>
             </div>
         </div>
 
-        <!-- Main Game Screen -->
+        <!-- Основной игровой экран -->
         <div id="game-screen" class="screen">
+            <!-- Боковая панель (десктоп) -->
             <aside id="sidebar">
+                <div class="sidebar-header">
+                    <span class="logo">BLACKNET</span>
+                    <span class="version">v2.0</span>
+                </div>
                 <nav id="main-nav">
                     <ul>
-                        <li><a href="#" data-screen="dashboard">DASHBOARD</a></li>
-                        <li><a href="#" data-screen="terminal">TERMINAL</a></li>
-                        <li><a href="#" data-screen="missions">MISSIONS</a></li>
-                        <li><a href="#" data-screen="network">NETWORK</a></li>
-                        <li><a href="#" data-screen="forensics">FORENSICS</a></li>
-                        <li><a href="#" data-screen="intelligence">INTELLIGENCE</a></li>
-                        <li><a href="#" data-screen="market">MARKET</a></li>
-                        <li><a href="#" data-screen="inventory">INVENTORY</a></li>
-                        <li><a href="#" data-screen="skills">SKILLS</a></li>
-                        <li><a href="#" data-screen="statistics">STATISTICS</a></li>
-                        <li><a href="#" data-screen="settings">SETTINGS</a></li>
+                        <li class="nav-group">ОСНОВНОЕ</li>
+                        <li><a href="#" data-screen="dashboard"><span class="icon">🏠</span> Dashboard</a></li>
+                        <li><a href="#" data-screen="missions"><span class="icon">📋</span> Missions</a></li>
+                        <li><a href="#" data-screen="terminal"><span class="icon">🖥️</span> Terminal</a></li>
+                        <li><a href="#" data-screen="network"><span class="icon">🌐</span> Network</a></li>
+                        <li class="nav-group">РАССЛЕДОВАНИЕ</li>
+                        <li><a href="#" data-screen="forensics"><span class="icon">🔎</span> Forensics</a></li>
+                        <li><a href="#" data-screen="intelligence"><span class="icon">🧠</span> Intelligence</a></li>
+                        <li><a href="#" data-screen="evidence"><span class="icon">📁</span> Evidence</a></li>
+                        <li class="nav-group">ПЕРСОНАЖ</li>
+                        <li><a href="#" data-screen="profile"><span class="icon">👤</span> Profile</a></li>
+                        <li><a href="#" data-screen="skills"><span class="icon">🎯</span> Skills</a></li>
+                        <li><a href="#" data-screen="inventory"><span class="icon">🎒</span> Inventory</a></li>
+                        <li><a href="#" data-screen="statistics"><span class="icon">📊</span> Statistics</a></li>
+                        <li class="nav-group">МИР</li>
+                        <li><a href="#" data-screen="contacts"><span class="icon">👥</span> Contacts</a></li>
+                        <li><a href="#" data-screen="market"><span class="icon">🛒</span> Market</a></li>
+                        <li><a href="#" data-screen="achievements"><span class="icon">🏆</span> Achievements</a></li>
                     </ul>
                 </nav>
+                <div class="sidebar-footer">
+                    <button id="btn-help" class="help-btn">? ПОМОЩЬ</button>
+                </div>
             </aside>
 
+            <!-- Основная область -->
             <main id="main-content">
-                <div id="screen-dashboard" class="game-screen-content active">
-                    <h2 class="screen-title">DASHBOARD</h2>
-                    <div class="dashboard-grid">
-                        <div class="panel">
-                            <h3>PLAYER</h3>
-                            <div id="player-info"></div>
-                        </div>
-                        <div class="panel">
-                            <h3>SYSTEM</h3>
-                            <div id="system-info"></div>
-                        </div>
-                        <div class="panel">
-                            <h3>CURRENT CONTRACT</h3>
-                            <div id="current-contract"></div>
-                        </div>
-                        <div class="panel">
-                            <h3>NETWORK</h3>
-                            <div id="network-stats"></div>
-                        </div>
-                        <div class="panel">
-                            <h3>INTELLIGENCE</h3>
-                            <div id="intelligence-stats"></div>
-                        </div>
-                        <div class="panel">
-                            <h3>ACTIVITY LOG</h3>
-                            <div id="activity-log" class="activity-log"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="screen-terminal" class="game-screen-content">
-                    <h2 class="screen-title">TERMINAL</h2>
-                    <div class="terminal-window">
-                        <div id="terminal-output" class="terminal-output"></div>
-                        <div class="terminal-input-line">
-                            <span class="prompt">root@blacknet:~$</span>
-                            <input type="text" id="terminal-input" autofocus autocomplete="off" />
-                        </div>
-                    </div>
-                </div>
-
-                <div id="screen-missions" class="game-screen-content">
-                    <h2 class="screen-title">MISSIONS</h2>
-                    <div class="missions-tabs">
-                        <button class="tab-btn active" data-tab="available">Available</button>
-                        <button class="tab-btn" data-tab="active">Active</button>
-                        <button class="tab-btn" data-tab="completed">Completed</button>
-                        <button class="tab-btn" data-tab="failed">Failed</button>
-                    </div>
-                    <div id="missions-container" class="missions-container"></div>
-                </div>
-
-                <div id="screen-network" class="game-screen-content">
-                    <h2 class="screen-title">NETWORK MAP</h2>
-                    <div id="network-map" class="network-map"></div>
-                    <div id="network-info" class="network-info"></div>
-                </div>
-
-                <div id="screen-forensics" class="game-screen-content">
-                    <h2 class="screen-title">FORENSICS</h2>
-                    <div id="forensics-case" class="forensics-case"></div>
-                    <div id="forensics-timeline" class="forensics-timeline"></div>
-                    <div id="forensics-report" class="forensics-report"></div>
-                </div>
-
-                <div id="screen-intelligence" class="game-screen-content">
-                    <h2 class="screen-title">INTELLIGENCE BOARD</h2>
-                    <div id="intelligence-board" class="intelligence-board"></div>
-                </div>
-
-                <div id="screen-market" class="game-screen-content">
-                    <h2 class="screen-title">MARKET</h2>
-                    <div class="market-tabs">
-                        <button class="tab-btn active" data-category="hardware">Hardware</button>
-                        <button class="tab-btn" data-category="software">Software</button>
-                        <button class="tab-btn" data-category="tools">Tools</button>
-                        <button class="tab-btn" data-category="intel">Intel</button>
-                    </div>
-                    <div id="market-items" class="market-items"></div>
-                </div>
-
-                <div id="screen-inventory" class="game-screen-content">
-                    <h2 class="screen-title">INVENTORY</h2>
-                    <div id="inventory-list" class="inventory-list"></div>
-                </div>
-
-                <div id="screen-skills" class="game-screen-content">
-                    <h2 class="screen-title">SKILLS</h2>
-                    <div id="skills-container" class="skills-container"></div>
-                </div>
-
-                <div id="screen-statistics" class="game-screen-content">
-                    <h2 class="screen-title">STATISTICS</h2>
-                    <div id="statistics-container" class="statistics-container"></div>
-                </div>
-
-                <div id="screen-settings" class="game-screen-content">
-                    <h2 class="screen-title">SETTINGS</h2>
-                    <div id="settings-container" class="settings-container"></div>
-                </div>
+                <div id="screen-dashboard" class="game-screen-content active"></div>
+                <div id="screen-terminal" class="game-screen-content"></div>
+                <div id="screen-missions" class="game-screen-content"></div>
+                <div id="screen-network" class="game-screen-content"></div>
+                <div id="screen-forensics" class="game-screen-content"></div>
+                <div id="screen-intelligence" class="game-screen-content"></div>
+                <div id="screen-evidence" class="game-screen-content"></div>
+                <div id="screen-profile" class="game-screen-content"></div>
+                <div id="screen-skills" class="game-screen-content"></div>
+                <div id="screen-inventory" class="game-screen-content"></div>
+                <div id="screen-statistics" class="game-screen-content"></div>
+                <div id="screen-contacts" class="game-screen-content"></div>
+                <div id="screen-market" class="game-screen-content"></div>
+                <div id="screen-achievements" class="game-screen-content"></div>
+                <div id="screen-settings" class="game-screen-content"></div>
             </main>
 
+            <!-- Мобильная нижняя навигация -->
             <nav id="mobile-nav">
                 <a href="#" data-screen="dashboard">DASH</a>
-                <a href="#" data-screen="terminal">TERM</a>
                 <a href="#" data-screen="missions">MISS</a>
+                <a href="#" data-screen="terminal">TERM</a>
                 <a href="#" data-screen="network">NET</a>
                 <a href="#" data-screen="menu" id="mobile-more">MORE</a>
             </nav>
         </div>
 
+        <!-- Модальное окно -->
         <div id="modal-container" class="modal-container hidden"></div>
+        <!-- Контейнер уведомлений -->
         <div id="notification-container" class="notification-container"></div>
+        <!-- Оверлей обучения -->
+        <div id="tutorial-overlay" class="tutorial-overlay hidden"></div>
+        <!-- Справочная панель -->
+        <div id="help-panel" class="help-panel hidden"></div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
