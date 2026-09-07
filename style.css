@@ -1,6 +1,5 @@
 /* =====================================================
-   BLACKNET: ZERO DAY — Стили (Phase 3)
-   Профессиональный киберпанк-интерфейс
+   BLACKNET: ZERO DAY — Финальные стили
    ===================================================== */
 
 :root {
@@ -23,7 +22,6 @@
     --border-active: rgba(0, 229, 255, 0.6);
     --font-mono: 'Courier New', monospace;
     --font-sans: 'Segoe UI', Tahoma, sans-serif;
-    --scanline-opacity: 0.3;
 }
 
 * {
@@ -40,11 +38,6 @@ html, body {
     overflow-x: hidden;
 }
 
-body {
-    position: relative;
-}
-
-/* Scanlines (можно отключить в настройках) */
 body::after {
     content: '';
     position: fixed;
@@ -57,18 +50,16 @@ body::after {
         to bottom,
         transparent 0px,
         transparent 2px,
-        rgba(0, 0, 0, var(--scanline-opacity)) 2px,
-        rgba(0, 0, 0, var(--scanline-opacity)) 4px
+        rgba(0, 0, 0, 0.3) 2px,
+        rgba(0, 0, 0, 0.3) 4px
     );
     z-index: 999;
-    transition: opacity 0.3s;
 }
 
 body.no-scanlines::after {
     opacity: 0;
 }
 
-/* Общий контейнер */
 #app {
     width: 100%;
     min-height: 100vh;
@@ -77,7 +68,6 @@ body.no-scanlines::after {
     position: relative;
 }
 
-/* Экраны */
 .screen {
     display: none;
     width: 100%;
@@ -88,7 +78,7 @@ body.no-scanlines::after {
     display: flex;
 }
 
-/* ---------- Стартовый экран ---------- */
+/* ---------- Start Screen ---------- */
 #start-screen {
     justify-content: center;
     align-items: center;
@@ -161,7 +151,6 @@ body.no-scanlines::after {
     cursor: not-allowed;
 }
 
-/* Кнопки с эффектом блика */
 .btn-primary::before,
 .btn-secondary::before {
     content: '';
@@ -179,7 +168,7 @@ body.no-scanlines::after {
     left: 100%;
 }
 
-/* ---------- Экран загрузки ---------- */
+/* ---------- Boot Screen ---------- */
 #boot-screen {
     flex-direction: column;
     justify-content: center;
@@ -216,13 +205,12 @@ body.no-scanlines::after {
     display: none !important;
 }
 
-/* ---------- Главный игровой экран ---------- */
+/* ---------- Main Game Screen ---------- */
 #game-screen {
     flex-direction: row;
     min-height: 100vh;
 }
 
-/* Сайдбар */
 #sidebar {
     width: 220px;
     min-width: 220px;
@@ -232,10 +220,6 @@ body.no-scanlines::after {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-}
-
-#main-nav {
-    flex: 1;
 }
 
 #main-nav ul {
@@ -270,7 +254,6 @@ body.no-scanlines::after {
     background: rgba(0, 229, 255, 0.08);
 }
 
-/* Основная область */
 #main-content {
     flex: 1;
     padding: 20px;
@@ -304,7 +287,7 @@ body.no-scanlines::after {
     padding-bottom: 5px;
 }
 
-/* ---------- Панели (общие) ---------- */
+/* ---------- Panels ---------- */
 .panel, .mission-card, .item-card, .skill-card, .stat-box,
 .forensics-case, .forensics-timeline, .forensics-report,
 .network-info, .setting-row {
@@ -366,7 +349,7 @@ body.no-scanlines::after {
     border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
-/* ---------- Терминал ---------- */
+/* ---------- Terminal ---------- */
 .terminal-window {
     background: #0a0a0f;
     border: 1px solid var(--border);
@@ -414,13 +397,7 @@ body.no-scanlines::after {
     caret-color: var(--green);
 }
 
-/* Мигающий курсор для терминала */
-#terminal-input::placeholder {
-    color: var(--text-muted);
-    opacity: 0.5;
-}
-
-/* ---------- Миссии ---------- */
+/* ---------- Missions ---------- */
 .missions-tabs, .market-tabs {
     display: flex;
     gap: 5px;
@@ -483,7 +460,7 @@ body.no-scanlines::after {
     color: var(--text-muted);
 }
 
-/* ---------- Сетевая карта ---------- */
+/* ---------- Network ---------- */
 .network-map {
     height: 400px;
     border: 1px solid var(--border);
@@ -491,10 +468,8 @@ body.no-scanlines::after {
     margin-bottom: 15px;
     position: relative;
     overflow: hidden;
-    cursor: default;
 }
 
-/* Фоновая сетка для карты */
 .network-map::before {
     content: '';
     position: absolute;
@@ -523,7 +498,7 @@ body.no-scanlines::after {
     padding-left: 20px;
 }
 
-/* ---------- Разведданные ---------- */
+/* ---------- Intelligence ---------- */
 .intelligence-board {
     display: flex;
     flex-wrap: wrap;
@@ -531,7 +506,7 @@ body.no-scanlines::after {
     min-height: 200px;
 }
 
-/* ---------- Маркет и инвентарь ---------- */
+/* ---------- Market / Inventory ---------- */
 .market-items, .inventory-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -582,7 +557,7 @@ body.no-scanlines::after {
     background: rgba(0, 229, 255, 0.1);
 }
 
-/* ---------- Навыки ---------- */
+/* ---------- Skills ---------- */
 .skills-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -615,7 +590,7 @@ body.no-scanlines::after {
     box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
 }
 
-/* ---------- Статистика ---------- */
+/* ---------- Statistics ---------- */
 .statistics-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -644,7 +619,7 @@ body.no-scanlines::after {
     font-size: 0.8rem;
 }
 
-/* ---------- Настройки ---------- */
+/* ---------- Settings ---------- */
 .settings-container {
     display: flex;
     flex-direction: column;
@@ -673,7 +648,7 @@ body.no-scanlines::after {
     font-family: var(--font-mono);
 }
 
-/* ---------- Модальные окна ---------- */
+/* ---------- Modal ---------- */
 .modal-container {
     position: fixed;
     top: 0;
@@ -728,7 +703,7 @@ body.no-scanlines::after {
     margin-top: 20px;
 }
 
-/* ---------- Уведомления ---------- */
+/* ---------- Notifications ---------- */
 .notification-container {
     position: fixed;
     top: 20px;
@@ -764,7 +739,37 @@ body.no-scanlines::after {
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* ---------- Адаптивность ---------- */
+/* ---------- Mobile Nav ---------- */
+#mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    backdrop-filter: blur(5px);
+}
+
+#mobile-nav a {
+    flex: 1;
+    text-align: center;
+    padding: 12px 0;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+}
+
+#mobile-nav a.active {
+    color: var(--cyan);
+    background: rgba(0, 229, 255, 0.05);
+}
+
+/* ---------- Responsive ---------- */
 @media (max-width: 768px) {
     #game-screen {
         flex-direction: column;
@@ -807,34 +812,4 @@ body.no-scanlines::after {
     .game-title h2 {
         font-size: 1.4rem;
     }
-}
-
-/* Мобильная навигация */
-#mobile-nav {
-    display: none;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--bg-secondary);
-    border-top: 1px solid var(--border);
-    z-index: 100;
-    backdrop-filter: blur(5px);
-}
-
-#mobile-nav a {
-    flex: 1;
-    text-align: center;
-    padding: 12px 0;
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.05em;
-    transition: all 0.2s;
-}
-
-#mobile-nav a.active {
-    color: var(--cyan);
-    background: rgba(0, 229, 255, 0.05);
 }
