@@ -1,12 +1,12 @@
 // =====================================================
 // BLACKNET: ZERO DAY — Core Game Engine
-// Phase 2: HTML/UI + Rendering
+// Phase 3: CSS + Settings Application
 // =====================================================
 
 'use strict';
 
 // ==================== CONSTANTS ====================
-const GAME_VERSION = '0.2.0';
+const GAME_VERSION = '0.3.0';
 const SAVE_VERSION = 1;
 
 const SKILLS = {
@@ -437,7 +437,7 @@ class Game {
         this.isRunning = false;
         this.lastFrameTime = null;
         this.initialized = false;
-        this.currentMission = null; // для удобства
+        this.currentMission = null;
     }
     
     init() {
@@ -453,13 +453,13 @@ class Game {
         this.setupEventListeners();
         this.checkSaveAvailability();
         this.registerEventHandlers();
+        this.applySettings(); // Применяем настройки при старте
         
         this.eventBus.emit('GAME_INITIALIZED', { game: this });
         console.log('BLACKNET: ZERO DAY — Initialization complete.');
     }
     
     setupEventListeners() {
-        // Start screen buttons
         const btnNewGame = document.getElementById('btn-new-game');
         const btnContinue = document.getElementById('btn-continue');
         const btnSettings = document.getElementById('btn-settings');
@@ -482,7 +482,6 @@ class Game {
             });
         }
         
-        // Navigation
         document.querySelectorAll('[data-screen]').forEach(element => {
             element.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -493,7 +492,6 @@ class Game {
             });
         });
         
-        // Mobile more button
         const mobileMore = document.getElementById('mobile-more');
         if (mobileMore) {
             mobileMore.addEventListener('click', (e) => {
@@ -502,7 +500,6 @@ class Game {
             });
         }
         
-        // Terminal input
         const terminalInput = document.getElementById('terminal-input');
         if (terminalInput) {
             terminalInput.addEventListener('keydown', (e) => {
@@ -518,13 +515,11 @@ class Game {
     }
     
     registerEventHandlers() {
-        // При изменении экрана вызываем рендеринг соответствующего экрана
         this.eventBus.on('SCREEN_CHANGED', (payload) => {
             const screen = payload.screen;
             this.renderScreen(screen);
         });
         
-        // При добавлении активности логируем
         this.eventBus.on('ACTIVITY_LOG_UPDATED', () => {
             if (this.state.system.currentScreen === 'dashboard') {
                 this.renderDashboard();
@@ -551,6 +546,7 @@ class Game {
     startNewGame() {
         console.log('Starting new game...');
         this.state.reset();
+        this.applySettings();
         this.showBootSequence();
     }
     
@@ -559,6 +555,7 @@ class Game {
         const saveData = this.loadGame();
         if (saveData) {
             this.state.fromJSON(saveData);
+            this.applySettings();
             this.showBootSequence(true);
         }
     }
@@ -621,7 +618,7 @@ class Game {
         this.navigateToScreen('dashboard');
         this.eventBus.emit('GAME_STARTED', { game: this });
         
-        // Автосохранение
+        this.applySettings(); // Применяем настройки после входа
         this.saveGame(true);
     }
     
@@ -635,7 +632,6 @@ class Game {
         
         this.state.system.currentScreen = screenName;
         
-        // Update active screen
         document.querySelectorAll('.game-screen-content').forEach(el => {
             el.classList.remove('active');
         });
@@ -645,7 +641,6 @@ class Game {
             target.classList.add('active');
         }
         
-        // Update nav active state
         document.querySelectorAll('#main-nav a, #mobile-nav a').forEach(el => {
             el.classList.remove('active');
             if (el.getAttribute('data-screen') === screenName) {
@@ -653,7 +648,6 @@ class Game {
             }
         });
         
-        // Focus terminal input if terminal screen
         if (screenName === 'terminal') {
             setTimeout(() => {
                 const input = document.getElementById('terminal-input');
@@ -726,7 +720,29 @@ class Game {
         this.eventBus.emit('ACTIVITY_LOG_UPDATED', { log: this.state.activityLog });
     }
     
-    // ==================== RENDERING ====================
+    // ==================== НАСТРОЙКИ ====================
+    applySettings() {
+        // Применяем scanlines
+        if (!this.state.settings.scanlines) {
+            document.body.classList.add('no-scanlines');
+        } else {
+            document.body.classList.remove('no-scanlines');
+        }
+        
+        // Применяем размер шрифта терминала
+        const terminalWindow = document.querySelector('.terminal-window');
+        const terminalInput = document.getElementById('terminal-input');
+        if (terminalWindow) {
+            terminalWindow.style.fontSize = this.state.settings.terminalFontSize + 'px';
+        }
+        if (terminalInput) {
+            terminalInput.style.fontSize = this.state.settings.terminalFontSize + 'px';
+        }
+        
+        // Другие настройки можно добавить позже
+    }
+    
+    // ==================== РЕНДЕРИНГ ====================
     renderScreen(screenName) {
         switch (screenName) {
             case 'dashboard':
@@ -782,7 +798,7 @@ class Game {
         const systemInfo = document.getElementById('system-info');
         if (systemInfo) {
             const hw = this.state.hardware;
-            const cpuLoad = Math.floor(Math.random() * 30) + 20; // заглушка для реалистичности, пока нет реальной нагрузки
+            const cpuLoad = Math.floor(Math.random() * 30) + 20;
             systemInfo.innerHTML = `
                 <div class="stat-row"><span class="stat-label">CPU</span><span class="stat-value">${cpuLoad}% (${hw.cpu.name})</span></div>
                 <div class="stat-row"><span class="stat-label">RAM</span><span class="stat-value">${hw.ram.performance * 4} MB</span></div>
@@ -872,7 +888,6 @@ class Game {
             </div>
         `).join('');
         
-        // Добавляем обработчики для карточек
         container.querySelectorAll('.mission-card').forEach(card => {
             card.addEventListener('click', () => {
                 const missionId = card.getAttribute('data-id');
@@ -887,7 +902,6 @@ class Game {
             if (this.state.network.nodes.length === 0) {
                 map.innerHTML = '<div style="padding:20px; text-align:center;">No network data. Use terminal to scan.</div>';
             } else {
-                // Отображение узлов (упрощённо для Phase 2)
                 map.innerHTML = this.state.network.nodes.map(node => 
                     `<div style="position:absolute; left:${node.x || 50}%; top:${node.y || 50}%; 
                           width:10px; height:10px; background:var(--cyan); border-radius:50%; 
@@ -930,7 +944,6 @@ class Game {
         const container = document.getElementById('market-items');
         if (!container) return;
         
-        // Заглушка: показываем пустые данные, так как market.items ещё не заполнен
         container.innerHTML = '<p>Market is empty. Check back later.</p>';
     }
     
@@ -969,7 +982,6 @@ class Game {
                 `;
             }).join('');
             
-            // Обработчики для кнопок улучшения
             container.querySelectorAll('.btn-upgrade-skill').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -1056,6 +1068,7 @@ class Game {
                 this.state.settings.terminalFontSize = parseInt(document.getElementById('setting-fontsize').value);
                 this.state.settings.notifications = document.getElementById('setting-notifications').checked;
                 this.state.settings.difficulty = document.getElementById('setting-difficulty').value;
+                this.applySettings(); // Применяем настройки сразу
                 this.saveGame(true);
                 this.addNotification('Settings saved', 'success');
             });
@@ -1066,7 +1079,7 @@ class Game {
         }
     }
     
-    // ==================== MODALS ====================
+    // ==================== МОДАЛЬНЫЕ ОКНА ====================
     showModal(title, content, buttons = []) {
         const container = document.getElementById('modal-container');
         if (!container) return;
@@ -1102,7 +1115,6 @@ class Game {
     }
     
     showMobileMenu() {
-        // Показываем простое мобильное меню
         const screens = [
             { id: 'intelligence', label: 'INTEL' },
             { id: 'market', label: 'MARKET' },
@@ -1161,6 +1173,7 @@ class Game {
         this.showModal('Confirm Reset', '<p>Are you sure you want to reset all progress? This cannot be undone.</p>', [
             { id: 'btn-confirm-reset', label: 'YES, RESET', class: 'btn-primary', onClick: () => {
                 this.state.reset();
+                this.applySettings();
                 this.saveGame(true);
                 this.hideModal();
                 this.addNotification('Game has been reset', 'warning');
@@ -1169,17 +1182,15 @@ class Game {
         ]);
     }
     
-    // ==================== TERMINAL COMMANDS ====================
+    // ==================== ТЕРМИНАЛЬНЫЕ КОМАНДЫ ====================
     executeTerminalCommand(command) {
         const output = document.getElementById('terminal-output');
         if (!output) return;
         
-        // Добавляем команду в вывод
         const promptLine = document.createElement('div');
         promptLine.innerHTML = `<span style="color:var(--cyan)">root@blacknet:~$</span> ${command}`;
         output.appendChild(promptLine);
         
-        // Обработка команд
         const parts = command.toLowerCase().split(' ');
         const cmd = parts[0];
         const args = parts.slice(1);
@@ -1270,22 +1281,18 @@ class Game {
                 response = `Command not found: ${command}. Type "help" for available commands.`;
         }
         
-        // Выводим результат
         if (response) {
             const respLine = document.createElement('div');
             respLine.textContent = response;
             output.appendChild(respLine);
         }
         
-        // Прокрутка вниз
         output.scrollTop = output.scrollHeight;
         
-        // Сохраняем команду в историю
         this.state.statistics.terminalCommandsUsed++;
         this.addActivityLog('TERMINAL', `Command: ${command}`);
     }
     
-    // Реализация терминальных команд (упрощённо для Phase 2)
     terminalHelp() {
         return `Available commands:
   help        - Show this help
@@ -1350,7 +1357,6 @@ ID: ${this.state.player.id}`;
             return 'Usage: scan <target> — target can be "network" or an IP address.';
         }
         if (args[0] === 'network') {
-            // Имитация сканирования сети
             setTimeout(() => {
                 const output = document.getElementById('terminal-output');
                 if (output) {
@@ -1371,7 +1377,6 @@ ID: ${this.state.player.id}`;
     
     terminalConnect(args) {
         if (args.length === 0) return 'Usage: connect <node_id>';
-        // Заглушка, реальное подключение будет позже
         return `Connecting to ${args[0]}... (feature coming soon)`;
     }
     
@@ -1407,7 +1412,6 @@ Status: ${node.status || 'unknown'}`;
     
     terminalHash(args) {
         if (args.length === 0) return 'Usage: hash <data>';
-        // Простая имитация хеширования
         return `SHA256: ${generateFakeHash(args.join(' '))}`;
     }
     
@@ -1523,7 +1527,6 @@ Uptime: ${Math.floor(this.state.player.playTime / 60)} min`;
     update() {
         if (!this.isRunning) return;
         
-        // Update play time
         if (this.state.system.bootSequenceComplete) {
             this.state.player.playTime += 1;
             this.state.statistics.playTime += 1;
