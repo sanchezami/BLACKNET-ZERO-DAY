@@ -1,4 +1,8 @@
-/* ============ BLACKNET: ZERO DAY — Стили (Phase 2) ============ */
+/* =====================================================
+   BLACKNET: ZERO DAY — Стили (Phase 3)
+   Профессиональный киберпанк-интерфейс
+   ===================================================== */
+
 :root {
     --bg-primary: #0a0a0f;
     --bg-secondary: #0f0f1a;
@@ -19,6 +23,7 @@
     --border-active: rgba(0, 229, 255, 0.6);
     --font-mono: 'Courier New', monospace;
     --font-sans: 'Segoe UI', Tahoma, sans-serif;
+    --scanline-opacity: 0.3;
 }
 
 * {
@@ -27,21 +32,52 @@
     box-sizing: border-box;
 }
 
-body {
+html, body {
+    height: 100%;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-family: var(--font-sans);
     overflow-x: hidden;
-    min-height: 100vh;
 }
 
+body {
+    position: relative;
+}
+
+/* Scanlines (можно отключить в настройках) */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 0, 0, var(--scanline-opacity)) 2px,
+        rgba(0, 0, 0, var(--scanline-opacity)) 4px
+    );
+    z-index: 999;
+    transition: opacity 0.3s;
+}
+
+body.no-scanlines::after {
+    opacity: 0;
+}
+
+/* Общий контейнер */
 #app {
     width: 100%;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
+/* Экраны */
 .screen {
     display: none;
     width: 100%;
@@ -52,7 +88,7 @@ body {
     display: flex;
 }
 
-/* ---------- Start Screen ---------- */
+/* ---------- Стартовый экран ---------- */
 #start-screen {
     justify-content: center;
     align-items: center;
@@ -109,6 +145,8 @@ body {
     color: var(--text-primary);
     transition: all 0.3s ease;
     text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-primary:hover:not(:disabled),
@@ -123,7 +161,25 @@ body {
     cursor: not-allowed;
 }
 
-/* ---------- Boot Screen ---------- */
+/* Кнопки с эффектом блика */
+.btn-primary::before,
+.btn-secondary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s;
+}
+
+.btn-primary:hover::before,
+.btn-secondary:hover::before {
+    left: 100%;
+}
+
+/* ---------- Экран загрузки ---------- */
 #boot-screen {
     flex-direction: column;
     justify-content: center;
@@ -144,6 +200,7 @@ body {
     min-height: 300px;
     margin-bottom: 30px;
     line-height: 1.6;
+    text-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
 }
 
 .boot-log .boot-line {
@@ -159,12 +216,13 @@ body {
     display: none !important;
 }
 
-/* ---------- Main Game Screen ---------- */
+/* ---------- Главный игровой экран ---------- */
 #game-screen {
     flex-direction: row;
     min-height: 100vh;
 }
 
+/* Сайдбар */
 #sidebar {
     width: 220px;
     min-width: 220px;
@@ -172,6 +230,12 @@ body {
     border-right: 1px solid var(--border);
     padding: 20px 0;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#main-nav {
+    flex: 1;
 }
 
 #main-nav ul {
@@ -206,11 +270,13 @@ body {
     background: rgba(0, 229, 255, 0.08);
 }
 
+/* Основная область */
 #main-content {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
     background: var(--bg-primary);
+    position: relative;
 }
 
 .game-screen-content {
@@ -219,6 +285,12 @@ body {
 
 .game-screen-content.active {
     display: block;
+    animation: contentFade 0.3s ease;
+}
+
+@keyframes contentFade {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .screen-title {
@@ -228,6 +300,20 @@ body {
     margin-bottom: 20px;
     color: var(--cyan);
     text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 5px;
+}
+
+/* ---------- Панели (общие) ---------- */
+.panel, .mission-card, .item-card, .skill-card, .stat-box,
+.forensics-case, .forensics-timeline, .forensics-report,
+.network-info, .setting-row {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 15px;
+    backdrop-filter: blur(5px);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
 /* ---------- Dashboard ---------- */
@@ -235,13 +321,6 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 15px;
-}
-
-.panel {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    padding: 15px;
-    border-radius: 5px;
 }
 
 .panel h3 {
@@ -268,6 +347,7 @@ body {
 .stat-value {
     font-weight: bold;
     font-family: var(--font-mono);
+    color: var(--text-primary);
 }
 
 .activity-log {
@@ -276,15 +356,24 @@ body {
     font-family: var(--font-mono);
     font-size: 0.8rem;
     color: var(--text-secondary);
+    background: rgba(0,0,0,0.2);
+    padding: 5px;
+    border-radius: 3px;
 }
 
-/* ---------- Terminal ---------- */
+.activity-log div {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ---------- Терминал ---------- */
 .terminal-window {
     background: #0a0a0f;
     border: 1px solid var(--border);
     padding: 10px;
     font-family: var(--font-mono);
     font-size: 14px;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
 }
 
 .terminal-output {
@@ -294,11 +383,18 @@ body {
     white-space: pre-wrap;
     color: var(--green);
     margin-bottom: 10px;
+    text-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
+}
+
+.terminal-output div {
+    line-height: 1.4;
 }
 
 .terminal-input-line {
     display: flex;
     align-items: center;
+    border-top: 1px solid var(--border);
+    padding-top: 5px;
 }
 
 .prompt {
@@ -315,9 +411,16 @@ body {
     color: var(--white);
     font-family: var(--font-mono);
     font-size: 14px;
+    caret-color: var(--green);
 }
 
-/* ---------- Missions ---------- */
+/* Мигающий курсор для терминала */
+#terminal-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+/* ---------- Миссии ---------- */
 .missions-tabs, .market-tabs {
     display: flex;
     gap: 5px;
@@ -340,6 +443,7 @@ body {
     border-color: var(--border-active);
     color: var(--cyan);
     background: rgba(0, 229, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
 }
 
 .missions-container {
@@ -349,16 +453,14 @@ body {
 }
 
 .mission-card {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    padding: 15px;
-    border-radius: 5px;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .mission-card:hover {
     border-color: var(--border-active);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+    transform: translateY(-1px);
 }
 
 .mission-card h4 {
@@ -381,7 +483,7 @@ body {
     color: var(--text-muted);
 }
 
-/* ---------- Network ---------- */
+/* ---------- Сетевая карта ---------- */
 .network-map {
     height: 400px;
     border: 1px solid var(--border);
@@ -389,24 +491,39 @@ body {
     margin-bottom: 15px;
     position: relative;
     overflow: hidden;
+    cursor: default;
+}
+
+/* Фоновая сетка для карты */
+.network-map::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        linear-gradient(rgba(0, 229, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 255, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
 }
 
 .network-info {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    padding: 15px;
     min-height: 100px;
 }
 
 /* ---------- Forensics ---------- */
 .forensics-case, .forensics-timeline, .forensics-report {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    padding: 15px;
     margin-bottom: 15px;
 }
 
-/* ---------- Intelligence ---------- */
+.forensics-timeline {
+    border-left: 2px solid var(--cyan);
+    padding-left: 20px;
+}
+
+/* ---------- Разведданные ---------- */
 .intelligence-board {
     display: flex;
     flex-wrap: wrap;
@@ -414,7 +531,7 @@ body {
     min-height: 200px;
 }
 
-/* ---------- Market / Inventory ---------- */
+/* ---------- Маркет и инвентарь ---------- */
 .market-items, .inventory-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -422,12 +539,14 @@ body {
 }
 
 .item-card {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    padding: 10px;
-    border-radius: 5px;
     display: flex;
     flex-direction: column;
+    transition: all 0.2s;
+}
+
+.item-card:hover {
+    border-color: var(--border-active);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
 }
 
 .item-card .item-name {
@@ -463,18 +582,11 @@ body {
     background: rgba(0, 229, 255, 0.1);
 }
 
-/* ---------- Skills ---------- */
+/* ---------- Навыки ---------- */
 .skills-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 15px;
-}
-
-.skill-card {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    padding: 15px;
-    border-radius: 5px;
 }
 
 .skill-card h3 {
@@ -500,9 +612,10 @@ body {
     height: 100%;
     background: var(--cyan);
     transition: width 0.3s;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
 }
 
-/* ---------- Statistics ---------- */
+/* ---------- Статистика ---------- */
 .statistics-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -510,16 +623,20 @@ body {
 }
 
 .stat-box {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    padding: 10px;
     text-align: center;
+    transition: all 0.2s;
+}
+
+.stat-box:hover {
+    border-color: var(--border-active);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
 }
 
 .stat-box .stat-num {
     font-size: 1.8rem;
     font-family: var(--font-mono);
     color: var(--cyan);
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
 }
 
 .stat-box .stat-label {
@@ -527,7 +644,7 @@ body {
     font-size: 0.8rem;
 }
 
-/* ---------- Settings ---------- */
+/* ---------- Настройки ---------- */
 .settings-container {
     display: flex;
     flex-direction: column;
@@ -540,9 +657,6 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 5px;
 }
 
 .setting-row label {
@@ -550,7 +664,8 @@ body {
     color: var(--text-primary);
 }
 
-.setting-row select, .setting-row input[type="checkbox"] {
+.setting-row select,
+.setting-row input[type="checkbox"] {
     padding: 5px;
     background: var(--bg-glass);
     border: 1px solid var(--border);
@@ -558,7 +673,7 @@ body {
     font-family: var(--font-mono);
 }
 
-/* ---------- Modal ---------- */
+/* ---------- Модальные окна ---------- */
 .modal-container {
     position: fixed;
     top: 0;
@@ -570,6 +685,12 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 200;
+    animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .modal-box {
@@ -580,6 +701,13 @@ body {
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
+    box-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
+    animation: modalSlideUp 0.3s ease;
+}
+
+@keyframes modalSlideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 .modal-box h2 {
@@ -600,7 +728,7 @@ body {
     margin-top: 20px;
 }
 
-/* ---------- Notification ---------- */
+/* ---------- Уведомления ---------- */
 .notification-container {
     position: fixed;
     top: 20px;
@@ -619,8 +747,9 @@ body {
     font-family: var(--font-mono);
     font-size: 0.85rem;
     color: var(--text-primary);
-    animation: slideIn 0.3s ease;
+    animation: notificationSlideIn 0.3s ease;
     border-radius: 4px;
+    backdrop-filter: blur(5px);
 }
 
 .notification.info { border-left: 3px solid var(--cyan); }
@@ -630,12 +759,12 @@ body {
 .notification.mission { border-left: 3px solid #aa66ff; }
 .notification.system { border-left: 3px solid var(--white); }
 
-@keyframes slideIn {
+@keyframes notificationSlideIn {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* ---------- Responsive ---------- */
+/* ---------- Адаптивность ---------- */
 @media (max-width: 768px) {
     #game-screen {
         flex-direction: column;
@@ -661,4 +790,51 @@ body {
     .terminal-output {
         max-height: 300px;
     }
+    
+    .mission-card .mission-meta {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .market-items, .inventory-list, .skills-container, .statistics-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .game-title h1 {
+        font-size: 2.5rem;
+    }
+    
+    .game-title h2 {
+        font-size: 1.4rem;
+    }
+}
+
+/* Мобильная навигация */
+#mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    backdrop-filter: blur(5px);
+}
+
+#mobile-nav a {
+    flex: 1;
+    text-align: center;
+    padding: 12px 0;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+}
+
+#mobile-nav a.active {
+    color: var(--cyan);
+    background: rgba(0, 229, 255, 0.05);
 }
